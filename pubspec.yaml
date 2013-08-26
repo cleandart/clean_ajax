@@ -1,0 +1,11 @@
+name: clean_server
+author: VacuumLabs s.r.o.
+description: Part of the clean.dart framework.
+dependencies:
+  browser: any
+dev_dependencies:
+  unittest: any
+
+#dependencies:
+#  js: any
+#  unittest: any
