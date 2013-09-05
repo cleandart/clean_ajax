@@ -52,8 +52,8 @@ class Server {
   /**
    * Maps [Request] names to their future responses.
    */
-  final Map<String, Completer<Response>> _responseMap = 
-      new Map<String, Completer<Response>>();
+  final Map<String, Completer> _responseMap = 
+      new Map<String, Completer>();
   
   /**
    * Begins performing HttpRequest. Stores the Future for this request 
@@ -70,26 +70,23 @@ class Server {
     
     var request_map = new Map<String, String>();    
     for (Map map in queue) {
-      var request = map['request']();
-      var completer = map['completer'];
+      var request = map['request']();      
       var name = request.name;
-      var content = request.content;
-      request_map[name] = content.json;
-      this._responseMap[name] = completer;
+      request_map[name] = request.content;
+      this._responseMap[name] = map['completer'];
     }    
       
     this._factory(this._url, method: 'POST', 
       sendData: stringify(request_map)).then((xhr) {
         if (xhr.status == 200) {
           var list = parse(xhr.responseText);
-          for (Map responseMap in list) {              
+          for (Map responseMap in list) {
             var name = responseMap['name'];
-            var jsonResponse = responseMap['response'];              
-            var response = new Response(jsonResponse);              
+            var response = responseMap['response'];                          
             if (this._responseMap.containsKey(name)) {
               this._responseMap[name].complete(response);                
               this._responseMap.remove(name);
-            } 
+            }
           }
           this._responseMap.forEach((name, request) {
             throw new Exception("Request <"+name+"> was not answered!");
@@ -106,8 +103,8 @@ class Server {
    * Puts the UnpreparedRequest to queue.
    * Returns Future object that completes when the request receives response.
    */
-  Future<Response> sendRequest(UnpreparedRequest request) {
-    var completer = new Completer<Response>();
+  Future sendRequest(UnpreparedRequest request) {
+    var completer = new Completer();
     var map = new Map();
     map['request'] = request;
     map['completer'] = completer;

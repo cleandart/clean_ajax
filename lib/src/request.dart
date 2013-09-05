@@ -5,10 +5,10 @@
 part of clean_server;
 
 class Request {
-  final RequestContent _content;  
+  final String _content;
   final String _name;
   
-  RequestContent get content => this._content;
+  String get content => this._content;
   String get name => this._name;  
   
   /**

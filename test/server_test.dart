@@ -106,18 +106,18 @@ void test_server() {
     test('Single Request receives a response', () {
       MockHttpRequest.stubResponseTextWith('[{"name": "name1", "response": "response"}]');      
       
-      server.sendRequest( () => new Request('name1', new RequestContent("")))
+      server.sendRequest( () => new Request('name1', ""))
         .then( expectAsync1( (response) {
-          expect(response.json, equals('response'));
+          expect(response, equals('response'));
       }));      
     });
     
     test('Multiple Requests with same name can receive different response', () {
       MockHttpRequest.stubResponseTextWith('[{"name": "name1", "response": "response2"}]');
 
-      server.sendRequest( () => new Request('name1', new RequestContent("")))
+      server.sendRequest( () => new Request('name1', ""))
         .then( expectAsync1( (response) {
-          expect(response.json, equals('response2'));    
+          expect(response, equals('response2'));    
       }));      
     });
     
@@ -126,28 +126,37 @@ void test_server() {
       
       delayedserver.sendRequest( () {
         print("Request 1 sent");
-        return new Request('name1', new RequestContent(""));
+        return new Request('name1', "");
       }).then( expectAsync1( (response) {
         print("Response 1 arrived");
-        expect(response.json, equals('response1'));
+        expect(response, equals('response1'));
       }));
       
       delayedserver.sendRequest( () {
         print("Request 2 sent");
-        return new Request('name2', new RequestContent(""));
+        return new Request('name2', "");
       }).then( expectAsync1( (response) {
         print("Response 2 arrived");
-        expect(response.json, equals('response2'));
+        expect(response, equals('response2'));
       }));
       
       delayedserver.sendRequest( () {
         print("Request 3 sent");
-        return new Request('name3', new RequestContent(""));
+        return new Request('name3', "");
       }).then( expectAsync1( (response) {
         print("Response 3 arrived");
-        expect(response.json, equals('response3'));
+        expect(response, equals('response3'));
       }));
       
+    });
+    
+    test('Response is JSON decoded on arrival', () {
+      MockHttpRequest.stubResponseTextWith('[{"name": "name1", "response": ["response1", "response2"]}]');
+
+      server.sendRequest( () => new Request('name1', ""))
+        .then( expectAsync1( (response) {
+          expect(response, equals(["response1", "response2"]));
+      }));
     });
     
   });
