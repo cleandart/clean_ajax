@@ -17,4 +17,3 @@ part 'src/server.dart';
 part 'src/requestcontent.dart';
 part 'src/request.dart';
 part 'src/response.dart';
-part 'src/httprequestfactory.dart';

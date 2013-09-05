@@ -8,13 +8,6 @@ import 'package:unittest/html_config.dart';
 import 'package:clean_server/clean_server.dart';
 import 'dart:async';
 
-class MockHttpRequestFactory extends Mock implements HttpRequestFactory {
-  
-  dynamic createRequest() {
-    return new MockHttpRequest();
-  }
-}
-
 class MockHttpRequest {
   static var _responseText;
 
@@ -32,11 +25,23 @@ class MockHttpRequest {
 
   open(_a, _b, {async, user, password}) {}
   send(request) => _loadStream.add(this);
-}
-
-class MockDelayedHttpRequestFactory extends Mock implements HttpRequestFactory {
-  dynamic createRequest() {
-    return new MockDelayedHttpRequest();
+  static request(String url, {String method, bool withCredentials, 
+      String responseType, String mimeType, Map<String, String> requestHeaders, 
+      sendData, void onProgress(e)}) {
+    var completer = new Completer<MockHttpRequest>();
+    var xhr = new MockHttpRequest();
+    if (method == null) {
+      method = 'GET';
+    }
+    xhr.open(method, url, async:true);
+    
+    xhr.onLoad.listen((e) {
+      completer.complete(xhr);
+    });
+    
+    xhr.send(sendData);
+    
+    return completer.future;
   }
 }
 
@@ -62,6 +67,25 @@ class MockDelayedHttpRequest  {
       _loadStream.add(this);
     });
   }
+  
+  static request(String url, {String method, bool withCredentials, 
+      String responseType, String mimeType, Map<String, String> requestHeaders, 
+      sendData, void onProgress(e)}) {    
+    var completer = new Completer<MockDelayedHttpRequest>();
+    var xhr = new MockDelayedHttpRequest();
+    if (method == null) {
+      method = 'GET';
+    }
+    xhr.open(method, url, async:true);
+    
+    xhr.onLoad.listen((e) {
+      completer.complete(xhr);
+    });
+    
+    xhr.send(sendData);
+    
+    return completer.future;
+  }
 }
 
 void main() {
@@ -74,28 +98,26 @@ void test_server() {
     
     Server server;
     Server delayedserver;
-    MockDelayedHttpRequestFactory delayedFactory;
     setUp(() {
-      delayedFactory = new MockDelayedHttpRequestFactory();
-      server = new Server.withFactory(new MockHttpRequestFactory());
-      delayedserver = new Server.withFactory(delayedFactory);      
+      server = new Server.withFactory(MockHttpRequest.request);
+      delayedserver = new Server.withFactory(MockDelayedHttpRequest.request);
     });
     
     test('Single Request receives a response', () {
-      MockHttpRequest.stubResponseTextWith('[{"name": "name", "response": "response"}]');      
+      MockHttpRequest.stubResponseTextWith('[{"name": "name1", "response": "response"}]');      
       
       server.prepareRequest().then( (request) {
-        return request.send('name', new RequestContent(""));
+        return request.send('name1', new RequestContent(""));
       }).then( expectAsync1( (response) {
         expect(response.json, equals('response'));
       }));
     });
     
     test('Multiple Requests with same name can receive different response', () {
-      MockHttpRequest.stubResponseTextWith('[{"name": "name", "response": "response2"}]');
+      MockHttpRequest.stubResponseTextWith('[{"name": "name1", "response": "response2"}]');
       
       server.prepareRequest().then( (request) {
-        return request.send('name', new RequestContent(""));
+        return request.send('name1', new RequestContent(""));
       }).then( expectAsync1((response) {
           expect(response.json, equals('response2'));
       }));
@@ -123,8 +145,7 @@ void test_server() {
         print("Request 3 sent");
         return request.send('name3', new RequestContent(""));
       }).then( expectAsync1((response) {
-          print("Response 3 arrived");
-          print(delayedFactory.log);
+          print("Response 3 arrived");          
           expect(response.json, equals('response3'));
       }));
       
