@@ -8,12 +8,14 @@ typedef HttpRequestFactory(String url, {String method, bool withCredentials,
   String responseType, String mimeType, Map<String, String> requestHeaders, 
   sendData, void onProgress(e)});
 
+typedef Request UnpreparedRequest();
+
 class Server {
   /** 
    * RequestFactory is a function like HttpRequest.request() that returns 
-   * Future<HttpRequest>.
+   * [Future<HttpRequest>].
    */
-  final HttpRequestFactory _factory;
+  final HttpRequestFactory _factory;  
   
   /**
    * The URL where to perform requests.
@@ -23,12 +25,12 @@ class Server {
   /**
    * Queue of unprepared [Request]s.
    */
-  final Queue<Request> _requestQueue = new Queue<Request>();
+  final Queue<Map> _requestQueue = new Queue<Map>();
   
   /**
    * Indicates whether a [HttpRequest] is currently on the way.
    */
-  bool _isRunning = false;  
+  bool _isRunning = false;
   
   /**
    * Future for the current running [HttpRequest]
@@ -45,12 +47,13 @@ class Server {
   /**
    * Creates a new [Server] with specified [HttpRequestFactory]
    */
-  Server.withFactory(this._factory);
+  Server.withFactory(this._factory);  
   
   /**
-   * Maps sent [Request] names to requests.
+   * Maps [Request] names to their future responses.
    */
-  Map<String, Request> _requestMap = new Map<String, Request>();
+  final Map<String, Completer<Response>> _responseMap = 
+      new Map<String, Completer<Response>>();
   
   /**
    * Begins performing HttpRequest. Stores the Future for this request 
@@ -59,67 +62,62 @@ class Server {
    */
   void performHttpRequest() {
     this._isRunning = true;
-    this._requestMap.clear();
+    this._responseMap.clear();
     var runCompleted = new Completer();
     this._runningRequest = runCompleted.future;
     var queue = this._requestQueue.toList();
-    this._requestQueue.clear();
-    var contentqueue = new Queue<Future>();
-    Completer<Response> responseCompleter = new Completer<Response>();    
+    this._requestQueue.clear();   
     
-    for (Request request in queue) {
-        contentqueue.add(request.requestContent());
-    }
-    
-    Future.wait(contentqueue).then( (list) {
-      var request_map = new Map<String, String>();
-      for (Request request in queue) {
-        var name = request.name;
-        var content = request.content;
-        request_map[name] = content.json;
-        this._requestMap[name] = request;
-      }
+    var request_map = new Map<String, String>();    
+    for (Map map in queue) {
+      var request = map['request']();
+      var completer = map['completer'];
+      var name = request.name;
+      var content = request.content;
+      request_map[name] = content.json;
+      this._responseMap[name] = completer;
+    }    
       
-      this._factory(this._url, method: 'POST', 
-        sendData: stringify(request_map)).then((xhr) {
-          if (xhr.status == 200) {
-            var list = parse(xhr.responseText);            
-            for (Map responseMap in list) {              
-              var name = responseMap['name'];
-              var jsonResponse = responseMap['response'];              
-              var response = new Response(jsonResponse);              
-              if (this._requestMap.containsKey(name)) {
-                this._requestMap[name].completeRequest(response);                
-                this._requestMap.remove(name);
-              } 
-            }
-            this._requestMap.forEach((name, request) {
-              throw new Exception("Request <"+name+"> was not answered!");
-            });
-          } else {
-            throw new Exception("Request completed with errors");
+    this._factory(this._url, method: 'POST', 
+      sendData: stringify(request_map)).then((xhr) {
+        if (xhr.status == 200) {
+          var list = parse(xhr.responseText);
+          for (Map responseMap in list) {              
+            var name = responseMap['name'];
+            var jsonResponse = responseMap['response'];              
+            var response = new Response(jsonResponse);              
+            if (this._responseMap.containsKey(name)) {
+              this._responseMap[name].complete(response);                
+              this._responseMap.remove(name);
+            } 
           }
-          this._isRunning = false;
-          runCompleted.complete();
-        });      
-    });
-  }
+          this._responseMap.forEach((name, request) {
+            throw new Exception("Request <"+name+"> was not answered!");
+          });
+        } else {
+          throw new Exception("Request completed with errors");
+        }
+        this._isRunning = false;
+        runCompleted.complete();
+      });  
+  }  
   
   /**
-   * Creates a new [Request] and puts it in queue.
-   * Returns Future object that completes when the request is about to be sent 
+   * Puts the UnpreparedRequest to queue.
+   * Returns Future object that completes when the request receives response.
    */
-  Future<Request> prepareRequest() {
-    var completer = new Completer<Request>();
-    var request = new Request(completer);
-    this._requestQueue.add(request);
+  Future<Response> sendRequest(UnpreparedRequest request) {
+    var completer = new Completer<Response>();
+    var map = new Map();
+    map['request'] = request;
+    map['completer'] = completer;
+    this._requestQueue.add(map);
     
     if (!this._isRunning) {
       this.performHttpRequest();
     } else if (this._requestQueue.length == 1) {
-      this._runningRequest.then((event) => this.performHttpRequest());
+      this._runningRequest.then((event) => this.performHttpRequest()); 
     }
-    
     return completer.future;
   }
 }

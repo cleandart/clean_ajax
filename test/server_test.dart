@@ -106,47 +106,46 @@ void test_server() {
     test('Single Request receives a response', () {
       MockHttpRequest.stubResponseTextWith('[{"name": "name1", "response": "response"}]');      
       
-      server.prepareRequest().then( (request) {
-        return request.send('name1', new RequestContent(""));
-      }).then( expectAsync1( (response) {
-        expect(response.json, equals('response'));
-      }));
+      server.sendRequest( () => new Request('name1', new RequestContent("")))
+        .then( expectAsync1( (response) {
+          expect(response.json, equals('response'));
+      }));      
     });
     
     test('Multiple Requests with same name can receive different response', () {
       MockHttpRequest.stubResponseTextWith('[{"name": "name1", "response": "response2"}]');
-      
-      server.prepareRequest().then( (request) {
-        return request.send('name1', new RequestContent(""));
-      }).then( expectAsync1((response) {
-          expect(response.json, equals('response2'));
-      }));
+
+      server.sendRequest( () => new Request('name1', new RequestContent("")))
+        .then( expectAsync1( (response) {
+          expect(response.json, equals('response2'));    
+      }));      
     });
     
     test('Multiple Requests can be sent in one shot (see sent/arrived order in log in DartEditor)', () {      
       MockDelayedHttpRequest.stubResponseTextWith('[{"name": "name1", "response": "response1"}, {"name": "name2", "response": "response2"}, {"name": "name3", "response": "response3"}]');
-      delayedserver.prepareRequest().then( (request) {
-        print("Request 1 sent");
-        return request.send('name1', new RequestContent(""));
-      }).then( expectAsync1((response) {
-          print("Response 1 arrived");
-          expect(response.json, equals('response1'));
-      }));            
       
-      delayedserver.prepareRequest().then( (request) {
-        print("Request 2 sent");
-        return request.send('name2', new RequestContent(""));        
-      }).then( expectAsync1((response) {
-          print("Response 2 arrived");
-          expect(response.json, equals('response2'));
+      delayedserver.sendRequest( () {
+        print("Request 1 sent");
+        return new Request('name1', new RequestContent(""));
+      }).then( expectAsync1( (response) {
+        print("Response 1 arrived");
+        expect(response.json, equals('response1'));
       }));
       
-      delayedserver.prepareRequest().then( (request) {
+      delayedserver.sendRequest( () {
+        print("Request 2 sent");
+        return new Request('name2', new RequestContent(""));
+      }).then( expectAsync1( (response) {
+        print("Response 2 arrived");
+        expect(response.json, equals('response2'));
+      }));
+      
+      delayedserver.sendRequest( () {
         print("Request 3 sent");
-        return request.send('name3', new RequestContent(""));
-      }).then( expectAsync1((response) {
-          print("Response 3 arrived");          
-          expect(response.json, equals('response3'));
+        return new Request('name3', new RequestContent(""));
+      }).then( expectAsync1( (response) {
+        print("Response 3 arrived");
+        expect(response.json, equals('response3'));
       }));
       
     });
