@@ -5,15 +5,33 @@
 part of clean_server;
 
 class Request {
-  final String _content;
+  final Map<String, dynamic> _args;
   final String _name;
   
-  String get content => this._content;
-  String get name => this._name;  
+  get args => this._args;
+  get name => this._name;
+  
+  int id;
   
   /**
-   * Creates a [Request] with specified [name] and [content]
-   * Completer is triggered when the request is about to be sent.
+   * Creates a [Request] with specified [name] and [args]
+   * [name] is the name of the requested server function
+   * [args] is a map of arguments for the specified server function 
    */
-  Request(this._name, this._content);
+  Request(this._name, this._args);
+  
+  /**
+   * Creates a [Request] from JSON encoded request
+   */
+  factory Request.fromJSON(json) {
+    var parsed = parse(json);
+    return new Request(parsed['name'], parsed['args']);
+  }
+  
+  /**
+   * Converts this [Request] to JSON string.
+   */
+  String toJSON() {    
+    return stringify({'id': id, 'name': name, 'args': args});
+  }  
 }

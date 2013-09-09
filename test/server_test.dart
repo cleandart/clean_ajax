@@ -6,9 +6,11 @@ import 'package:unittest/unittest.dart';
 import 'package:unittest/mock.dart';
 import 'package:unittest/html_config.dart';
 import 'package:clean_server/clean_server.dart';
+import "dart:collection";
 import 'dart:async';
+import 'dart:json';
 
-class MockHttpRequest {
+class MockHttpRequest {  
   static var _responseText;
 
   StreamController _loadStream;
@@ -24,7 +26,8 @@ class MockHttpRequest {
   get status => 200;
 
   open(_a, _b, {async, user, password}) {}
-  send(request) => _loadStream.add(this);
+  send(request) => _loadStream.add(this);  
+  
   static request(String url, {String method, bool withCredentials, 
       String responseType, String mimeType, Map<String, String> requestHeaders, 
       sendData, void onProgress(e)}) {
@@ -45,22 +48,8 @@ class MockHttpRequest {
   }
 }
 
-class MockDelayedHttpRequest  {
-  static var _responseText;
-
-  StreamController _loadStream;
-  Stream onLoad;
-
-  MockDelayedHttpRequest() {
-    _loadStream = new StreamController.broadcast();
-    onLoad = _loadStream.stream;
-  }
-
-  static stubResponseTextWith(v) => _responseText = v;
-  get responseText => _responseText;
-  get status => 200;
-
-  open(_a, _b, {async, user, password}) {}
+class MockDelayedHttpRequest extends MockHttpRequest {
+  static get stubResponseTextWith => MockHttpRequest.stubResponseTextWith;
   
   send(request) {
     Timer timer = new Timer(new Duration(seconds: 1), () {
@@ -69,10 +58,43 @@ class MockDelayedHttpRequest  {
   }
   
   static request(String url, {String method, bool withCredentials, 
-      String responseType, String mimeType, Map<String, String> requestHeaders, 
-      sendData, void onProgress(e)}) {    
+    String responseType, String mimeType, Map<String, String> requestHeaders, 
+    sendData, void onProgress(e)}) {
     var completer = new Completer<MockDelayedHttpRequest>();
     var xhr = new MockDelayedHttpRequest();
+    if (method == null) {
+      method = 'GET';
+    }
+    xhr.open(method, url, async:true);
+    
+    xhr.onLoad.listen((e) {
+      completer.complete(xhr);
+    });
+    
+    xhr.send(sendData);
+    
+    return completer.future;
+  }
+}
+
+class MockArgumentedHttpRequest extends MockHttpRequest {
+  static get stubResponseTextWith => MockHttpRequest.stubResponseTextWith;
+   
+  send(request) {    
+    var response = new List();
+    for (var singleRequest in parse(request)) {
+      var parsed = parse(singleRequest);      
+      response.add({'id': parsed['id'], 'response': parsed['args']['argument']});
+    }    
+    stubResponseTextWith(stringify(response));
+    _loadStream.add(this);
+  }
+  
+  static request(String url, {String method, bool withCredentials, 
+    String responseType, String mimeType, Map<String, String> requestHeaders, 
+    sendData, void onProgress(e)}) {
+    var completer = new Completer<MockArgumentedHttpRequest>();
+    var xhr = new MockArgumentedHttpRequest();
     if (method == null) {
       method = 'GET';
     }
@@ -98,35 +120,43 @@ void test_server() {
     
     Server server;
     Server delayedserver;
+    Server parsingserver;
     setUp(() {
-      server = new Server.withFactory(MockHttpRequest.request);
-      delayedserver = new Server.withFactory(MockDelayedHttpRequest.request);
+      server = new Server.withFactory(MockHttpRequest.request, 'localhost');
+      delayedserver = new Server.withFactory(MockDelayedHttpRequest.request, 'localhost');
+      parsingserver = new Server.withFactory(MockArgumentedHttpRequest.request, 'localhost');
     });
     
     test('Single Request receives a response', () {
-      MockHttpRequest.stubResponseTextWith('[{"name": "name1", "response": "response"}]');      
+      MockHttpRequest.stubResponseTextWith('[{"id": 0, "response": "response"}]');      
       
-      server.sendRequest( () => new Request('name1', ""))
+      server.sendRequest( () => new Request('name1', {}))
         .then( expectAsync1( (response) {
           expect(response, equals('response'));
       }));      
     });
     
+    
     test('Multiple Requests with same name can receive different response', () {
-      MockHttpRequest.stubResponseTextWith('[{"name": "name1", "response": "response2"}]');
+      MockHttpRequest.stubResponseTextWith('[{"id": 0, "response": "response2"}, {"id": 1, "response": "response3"}]');
 
-      server.sendRequest( () => new Request('name1', ""))
+      server.sendRequest( () => new Request('name', {}))
         .then( expectAsync1( (response) {
           expect(response, equals('response2'));    
-      }));      
+      }));
+      
+      server.sendRequest( () => new Request('name', {}))
+        .then( expectAsync1( (response) {
+          expect(response, equals('response3'));    
+      }));
     });
     
     test('Multiple Requests can be sent in one shot (see sent/arrived order in log in DartEditor)', () {      
-      MockDelayedHttpRequest.stubResponseTextWith('[{"name": "name1", "response": "response1"}, {"name": "name2", "response": "response2"}, {"name": "name3", "response": "response3"}]');
+      MockDelayedHttpRequest.stubResponseTextWith('[{"id": 0, "response": "response1"}, {"id": 1, "response": "response2"}, {"id": 2, "response": "response3"}]');
       
       delayedserver.sendRequest( () {
         print("Request 1 sent");
-        return new Request('name1', "");
+        return new Request('name1', {});
       }).then( expectAsync1( (response) {
         print("Response 1 arrived");
         expect(response, equals('response1'));
@@ -134,7 +164,7 @@ void test_server() {
       
       delayedserver.sendRequest( () {
         print("Request 2 sent");
-        return new Request('name2', "");
+        return new Request('name2', {});
       }).then( expectAsync1( (response) {
         print("Response 2 arrived");
         expect(response, equals('response2'));
@@ -142,7 +172,7 @@ void test_server() {
       
       delayedserver.sendRequest( () {
         print("Request 3 sent");
-        return new Request('name3', "");
+        return new Request('name3', {});
       }).then( expectAsync1( (response) {
         print("Response 3 arrived");
         expect(response, equals('response3'));
@@ -151,12 +181,24 @@ void test_server() {
     });
     
     test('Response is JSON decoded on arrival', () {
-      MockHttpRequest.stubResponseTextWith('[{"name": "name1", "response": ["response1", "response2"]}]');
+      MockHttpRequest.stubResponseTextWith('[{"id": 0, "response": ["response1", "response2"]}]');
 
-      server.sendRequest( () => new Request('name1', ""))
+      server.sendRequest( () => new Request('name1', {}))
         .then( expectAsync1( (response) {
           expect(response, equals(["response1", "response2"]));
       }));
+    });
+    
+    test('Arguments are passed to server correctly', () {
+      parsingserver.sendRequest( () => new Request('name', {'argument': 'testvalue1'}))
+        .then( expectAsync1( (response) {
+          expect(response, equals('testvalue1'));
+      }));
+      
+      parsingserver.sendRequest( () => new Request('name', {'argument': 'testvalue2'}))
+        .then( expectAsync1( (response) {
+          expect(response, equals('testvalue2'));
+      }));      
     });
     
   });
