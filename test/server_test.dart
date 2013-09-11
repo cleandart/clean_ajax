@@ -82,9 +82,8 @@ class MockArgumentedHttpRequest extends MockHttpRequest {
    
   send(request) {    
     var response = new List();
-    for (var singleRequest in parse(request)) {
-      var parsed = parse(singleRequest);      
-      response.add({'id': parsed['id'], 'response': parsed['args']['argument']});
+    for (var singleRequest in parse(request)) {            
+      response.add({'id': singleRequest['id'], 'response': singleRequest['request']['args']['argument']});
     }    
     stubResponseTextWith(stringify(response));
     _loadStream.add(this);
@@ -122,9 +121,9 @@ void test_server() {
     Server delayedserver;
     Server parsingserver;
     setUp(() {
-      server = new Server.withFactory(MockHttpRequest.request, 'localhost');
-      delayedserver = new Server.withFactory(MockDelayedHttpRequest.request, 'localhost');
-      parsingserver = new Server.withFactory(MockArgumentedHttpRequest.request, 'localhost');
+      server = new Server.config(MockHttpRequest.request, 'localhost');
+      delayedserver = new Server.config(MockDelayedHttpRequest.request, 'localhost');
+      parsingserver = new Server.config(MockArgumentedHttpRequest.request, 'localhost');
     });
     
     test('Single Request receives a response', () {

@@ -5,12 +5,8 @@
 part of clean_server;
 
 class Request {
-  final Map<String, dynamic> _args;
-  final String _name;
-  
-  get args => this._args;
-  get name => this._name;
-  
+  final Map<String, dynamic> args;
+  final String name;  
   int id;
   
   /**
@@ -18,20 +14,12 @@ class Request {
    * [name] is the name of the requested server function
    * [args] is a map of arguments for the specified server function 
    */
-  Request(this._name, this._args);
+  Request(this.name, this.args);  
   
   /**
-   * Creates a [Request] from JSON encoded request
+   * Converts this [Request] to JSON serializable map.
    */
-  factory Request.fromJSON(json) {
-    var parsed = parse(json);
-    return new Request(parsed['name'], parsed['args']);
-  }
-  
-  /**
-   * Converts this [Request] to JSON string.
-   */
-  String toJSON() {    
-    return stringify({'id': id, 'name': name, 'args': args});
+  Map toJson() {    
+    return {'name': name, 'args': args};
   }  
 }

@@ -39,13 +39,13 @@ class Server {
    * Creates a new [Server] with default [HttpRequestFactory]
    */
   factory Server(url) {
-    return new Server.withFactory(HttpRequest.request, url);        
+    return new Server.config(HttpRequest.request, url);        
   }
   
   /**
    * Creates a new [Server] with specified [HttpRequestFactory]
    */
-  Server.withFactory(this._factory, this._url);
+  Server.config(this._factory, this._url);
   
   /**
    * Maps [Request] names to their future responses.
@@ -68,18 +68,13 @@ class Server {
       return;
     }
     this._isRunning = true;
-    var runCompleted = new Completer();
-    runCompleted.future.then((event) {
-      this.performHttpRequest();
-    }); 
     
-    var request_list = new List<String>();
+    var request_list = new List();
     while (!this._requestQueue.isEmpty) {
       var map = this._requestQueue.removeFirst();      
       var request = map['request'](); // create the request
-      request.id = requestCount++; // assign id to request
-      request_list.add(request.toJSON());
-      this._responseMap[request.id] = map['completer'];
+      request_list.add({'id': requestCount, 'request': request});      
+      this._responseMap[requestCount++] = map['completer'];
     }
       
     this._factory(this._url, method: 'POST',
@@ -94,10 +89,10 @@ class Server {
           }
         }
         this._responseMap.forEach((id, request) {
-          throw new Exception("Request <"+id+"> was not answered!");
+          throw new Exception("Request $id was not answered!");
         });        
         this._isRunning = false;
-        runCompleted.complete();
+        this.performHttpRequest();
       });  
   }  
   
