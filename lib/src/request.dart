@@ -7,7 +7,6 @@ part of clean_server;
 class Request {
   final Map<String, dynamic> args;
   final String name;  
-  int id;
   
   /**
    * Creates a [Request] with specified [name] and [args]
