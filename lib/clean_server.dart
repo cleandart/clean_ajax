@@ -11,7 +11,7 @@ import "dart:core";
 import "dart:async";
 import "dart:collection";
 import "dart:html";
-import "dart:json";
+import "dart:convert";
 
 part 'src/server.dart';
 part 'src/request.dart';
