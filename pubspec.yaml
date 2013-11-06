@@ -5,7 +5,3 @@ dependencies:
   browser: any
 dev_dependencies:
   unittest: any
-
-#dependencies:
-#  js: any
-#  unittest: any
