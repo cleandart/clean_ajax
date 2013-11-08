@@ -2,13 +2,13 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-part of clean_ajax;
+part of clean_ajax_client;
 
 typedef HttpRequestFactory(String url, {String method, bool withCredentials,
   String responseType, String mimeType, Map<String, String> requestHeaders,
   sendData, void onProgress(e)});
 
-typedef Request CreateRequest();
+typedef ClientRequest CreateRequest();
 
 class Server {
   /**
@@ -23,9 +23,9 @@ class Server {
   final String _url;
 
   /**
-   * Queue of unprepared [Request]s.
+   * Queue of unprepared [ClientRequest]s.
    * The map entry should contain these keys and values:
-   *   'request': [Request] object
+   *   'createRequest': [CreateRequest] object
    *   'completer': [Completer] object which returns response for the request
    */
   final Queue<Map> _requestQueue = new Queue<Map>();
@@ -68,17 +68,16 @@ class Server {
       return;
     }
     this._isRunning = true;
-
     var request_list = new List();
     while (!this._requestQueue.isEmpty) {
       var map = this._requestQueue.removeFirst();
-      var request = map['request'](); // create the request
-      request_list.add({'id': requestCount, 'request': request});
+      var clientRequest = map['createRequest'](); // create the request
+      request_list.add(new PackedRequest(requestCount, clientRequest));
       this._responseMap[requestCount++] = map['completer'];
     }
 
     this._factory(this._url, method: 'POST',
-      sendData: JSON.encode(request_list)).then((xhr) {
+      sendData: encodeListOfPackedRequest(request_list)).then((xhr) {
         var list = JSON.decode(xhr.responseText);
         for (var responseMap in list) {
           var id = responseMap['id'];
@@ -100,9 +99,9 @@ class Server {
    * Puts the Unprepared Request to queue.
    * Returns Future object that completes when the request receives response.
    */
-  Future sendRequest(CreateRequest request) {
+  Future sendRequest(CreateRequest createRequest) {
     var completer = new Completer();
-    this._requestQueue.add({'request': request, 'completer': completer});
+    this._requestQueue.add({'createRequest': createRequest, 'completer': completer});
     this.performHttpRequest();
     return completer.future;
   }

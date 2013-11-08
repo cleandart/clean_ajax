@@ -3,5 +3,6 @@ author: VacuumLabs s.r.o.
 description: Part of the clean.dart framework.
 dependencies:
   browser: any
+  http_server: any
 dev_dependencies:
   unittest: any
