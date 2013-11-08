@@ -1,4 +1,4 @@
-name: clean_server
+name: clean_ajax
 author: VacuumLabs s.r.o.
 description: Part of the clean.dart framework.
 dependencies:
