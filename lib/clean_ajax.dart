@@ -5,7 +5,7 @@
 /**
  * A library for server-client communication and interaction
  */
-library clean_server;
+library clean_ajax;
 
 import "dart:core";
 import "dart:async";
