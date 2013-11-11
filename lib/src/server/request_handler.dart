@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-part of clean_ajax_server;
+part of clean_server;
 
 typedef Future RequestExecutor(request);
 
@@ -15,7 +15,8 @@ class RequestHandler {
 
   void serveHttpRequest(HttpRequest httpRequest) {
     HttpBodyHandler.processRequest(httpRequest).then((HttpBody body) {
-      List<PackedRequest> packedRequests = decodeListOfPackedRequest(body.body);
+      var json = JSON.decode(body.body);
+      var packedRequests = decodeFromJson(json);
 
       _splitAndProcessRequests(packedRequests).then((response) {
         httpRequest.response
@@ -37,10 +38,10 @@ class RequestHandler {
   Future<List> _splitAndProcessRequests(List<PackedRequest> requests) {
     Completer c = new Completer();
 
-
     final List responses = new List();
+
     //processingFunc will be function for processing one request
-    var processingFunc = (PackedRequest request) => _handleClientRequest(request.clientRequest.name, request.clientRequest);
+    var processingFunc = (PackedRequest request) => _handleClientRequest(request.clientRequest.type, request.clientRequest);
 
     //now you need to call on each element of requests function processingFunc
     //this calls are asynchronous but must run in seqencial order
@@ -55,10 +56,10 @@ class RequestHandler {
             responses.add({'id': request["id"], 'response': response});
             print("RESPONSE: ${response}");
           }))
-      .then(
-        (_)=>c.complete(responses))
-     .catchError(
-         (e)=> c.completeError(e));
+    .then(
+      (_)=>c.complete(responses))
+    .catchError(
+      (e)=> c.completeError(e));
 
     return c.future;
   }

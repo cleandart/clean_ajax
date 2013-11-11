@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-part of clean_ajax_client;
+part of clean_client;
 
 typedef HttpRequestFactory(String url, {String method, bool withCredentials,
   String responseType, String mimeType, Map<String, String> requestHeaders,
@@ -77,7 +77,7 @@ class Server {
     }
 
     this._factory(this._url, method: 'POST',
-      sendData: encodeListOfPackedRequest(request_list)).then((xhr) {
+      sendData: JSON.encode(encodeToJson(request_list))).then((xhr) {
         var list = JSON.decode(xhr.responseText);
         for (var responseMap in list) {
           var id = responseMap['id'];

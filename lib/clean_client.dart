@@ -5,7 +5,7 @@
 /**
  * A library for server-client communication and interaction
  */
-library clean_ajax_client;
+library clean_client;
 
 import "dart:core";
 import "dart:async";
@@ -14,5 +14,6 @@ import "dart:html";
 import "dart:convert";
 
 import 'package:clean_ajax/clean_common.dart';
+export 'package:clean_ajax/clean_common.dart' show ClientRequest;
 
-part 'src/server.dart';
+part 'src/client/server.dart';

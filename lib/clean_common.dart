@@ -5,9 +5,9 @@
 /**
  * A library for server-client communication and interaction
  */
-library clean_ajax_common;
+library clean_common;
 
 import "dart:core";
-import "dart:convert";
 
-part 'src/request.dart';
+part 'src/common/client_request.dart';
+part 'src/common/packed_request.dart';
