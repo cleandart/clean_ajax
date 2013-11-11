@@ -14,5 +14,6 @@ import 'dart:io';
 import 'package:http_server/http_server.dart';
 
 import 'package:clean_ajax/clean_common.dart';
+export 'package:clean_ajax/clean_common.dart' show ClientRequest;
 
 part 'src/server/request_handler.dart';
