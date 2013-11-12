@@ -5,7 +5,7 @@
 import 'package:unittest/unittest.dart';
 import 'package:unittest/mock.dart';
 import 'package:unittest/html_config.dart';
-import 'package:clean_ajax/clean_client.dart';
+import 'package:clean_ajax/client.dart';
 import "dart:collection";
 import 'dart:async';
 import 'dart:convert';

@@ -3,120 +3,150 @@
 // BSD-style license that can be found in the LICENSE file.
 
 import 'package:unittest/unittest.dart';
-import 'package:clean_backend/clean_backend.dart';
+import 'package:clean_ajax/server.dart';
 import 'package:unittest/mock.dart';
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+import 'package:http_server/http_server.dart';
 
+
+
+class NullObject {
+  noSuchMethod(invocation) {
+    return new NullObject();
+  }
+}
+
+class MockHttpRequest extends Mock implements HttpRequest
+{
+  MockHttpResponse response = new MockHttpResponse();
+  MockHttpBody body;
+  MockHttpRequest(String request)
+  {
+    body = new MockHttpBody(request);
+  }
+  noSuchMethod(invocation) => new NullObject();
+}
+
+class MockHttpBody extends Mock implements HttpBody
+{
+  String type = 'type';
+  dynamic body;
+  MockHttpBody(this.body);
+}
+
+class MockHttpResponse extends Mock implements HttpResponse
+{
+  final Completer _completer = new Completer();
+  Future isFinished;
+  dynamic result;
+  int statusCode;
+  get headers => new NullObject();
+
+  MockHttpResponse()
+  {
+    isFinished = _completer.future;
+  }
+
+  close() => _completer.complete(this);
+
+  write(text) => result = text;
+
+  noSuchMethod(invocation) {
+    return new NullObject();
+  }
+}
+
+Future<MockHttpBody> mockHttpBodyExctractor(MockHttpRequest request) =>
+    new Future.value(request.body);
 
 void main() {
 
   group('RequestHandler', () {
     RequestHandler requestHandler;
-    setUp(() {
-      requestHandler = new RequestHandler();
-      
-    });
-    
-    
-    test('empty request handler (T01).', () {
+    MockHttpBody body;
 
-      // whenthen
-      expect(()=> requestHandler.handleRequest('uknownRequest', {}), throws);
-      
-      // then
-//      future.then( expectAsync1( (response) {
-//        print("Response 1 arrived");
-//        expect(response, equals('response1'));
-//      }));
+    setUp(() {
+      requestHandler = new RequestHandler.config(mockHttpBodyExctractor);
     });
-    
-    test('register executor (TO2).', () {
-        
-        //given 
-        Future executor(request) => new Future.value({});
-          
-        // when
-          var added = requestHandler.registerExecutor("dummy", executor);
-          
-        //then
-          expect(added, isTrue);
-          expect(requestHandler.isEmpty, isFalse);
-    });
-    
-    test('unregister executor (TO3).', () {
-      
-      //given 
-      Future executor(request) => new Future.value({});
-      requestHandler.registerExecutor("dummy", executor);
-      
-      // when
-      var removed = requestHandler.unregisterExecutor("dummy");
-      
-      //then
-      expect(removed, isTrue);
-      expect(requestHandler.isEmpty, isTrue);
-    });
-    
-    test('handle registered handler (TO4).', () {
-      
-      //given 
-      Future executor(request) => new Future.value({});
-      requestHandler.registerExecutor("dummy", executor);
-      
-      // when
-      var future = requestHandler.handleRequest("dummy", {"name": "dummy"});
-      
-      //then
-      future.then( expectAsync1( (response) {
-        expect(response, equals({}));
-      }));
-    });
-    
-    test('handle unknown request with default handler (TO5).', () {
-      
-      //given 
-      Future executor(request) => new Future.value({});
-      requestHandler.registerExecutor("", executor);
-      
-      // when
-      var future = requestHandler.handleRequest("uknownRequest", {"name": "dummy"});
-      
-      //then
-      future.then( expectAsync1( (response) {
-        expect(response, equals({}));
-      }));
-    });
-    
-    test('handle unknown request without default handler (TO6).', () {
-      
-      //given 
-      Future executor(request) => new Future.value({});
-      requestHandler.registerExecutor("dummy", executor);
-      
-      // whenthen
-      expect(()=> requestHandler.handleRequest('uknownRequest', {}), throws);
-    });
-    
-    test('register second executor with same name (TO7).', () {
-      
-      //given 
-      Future executor(request) => new Future.value({});
-      Future executor2(request) => new Future.value({"response": "different to executor"}); 
-      
+
+
+    test('Empty request handler (T01).', () {
+      //given
+      var request = new MockHttpRequest(JSON.encode([new PackedRequest(47, new ClientRequest('test1',15))]));
+
       //when
-      requestHandler.registerExecutor("dummy", executor);
-      var added = requestHandler.registerExecutor("dummy", executor2);
-      var future = requestHandler.handleRequest("dummy", {"name": "dummy"});
-      
-      // then
-      expect(added, isFalse);
-      future.then( expectAsync1( (response) {
-        expect(response, equals({}));
-      }));
+      requestHandler.serveHttpRequest(request);
+
+      //then
+      request.response.isFinished.then(expectAsync1((MockHttpResponse response) => expect(response.statusCode,HttpStatus.BAD_REQUEST)));
     });
-    
-    
+
+    test('Register and run one executor (TO2).', () {
+        //given
+        Future mockExecutor(request) => new Future.value('dummyResponse');
+        requestHandler.registerExecutor('dummyType', mockExecutor);
+        var request = new MockHttpRequest(JSON.encode([new PackedRequest(47, new ClientRequest('dummyType',15))]));
+
+        //when
+        requestHandler.serveHttpRequest(request);
+
+        //then
+        request.response.isFinished.then(expectAsync1(
+          (MockHttpResponse response) {
+            expect(response.statusCode,HttpStatus.OK);
+            expect(response.result,equals(JSON.encode([{'id':47, 'response': 'dummyResponse'}])));
+          }
+        ));
+    });
+
+    test('Register and run default executor (TO3).', () {
+        //given
+        Future mockExecutor(request) => new Future.value('dummyResponse');
+        requestHandler.registerDefaultExecutor(mockExecutor);
+        var request = new MockHttpRequest(JSON.encode([new PackedRequest(47, new ClientRequest('dummyType',15))]));
+
+        //when
+        requestHandler.serveHttpRequest(request);
+
+        //then
+        request.response.isFinished.then(expectAsync1(
+          (MockHttpResponse response) {
+            expect(response.statusCode,HttpStatus.OK);
+            expect(response.result,equals(JSON.encode([{'id':47, 'response': 'dummyResponse'}])));
+          }
+        ));
+    });
+
+    test('Test reciving of multiple PackedRequests (TO4).', () {
+        //given
+        Future mockExecutor1(request) => new Future.delayed(new Duration(seconds: 2),()=>'dummyResponse1');
+        Future mockExecutor2(request) => new Future.value('dummyResponse2');
+        requestHandler.registerExecutor('dummyType1',mockExecutor1);
+        requestHandler.registerDefaultExecutor(mockExecutor2);
+
+        var request = new MockHttpRequest(
+            JSON.encode([new PackedRequest(1, new ClientRequest('dummyType1',10)),
+                         new PackedRequest(2, new ClientRequest('dummyType2',12))
+                        ]));
+
+        //when
+        requestHandler.serveHttpRequest(request);
+
+        //then
+        request.response.isFinished.then(expectAsync1(
+          (MockHttpResponse response) {
+            expect(response.statusCode,HttpStatus.OK);
+            expect(response.result,equals(JSON.encode(
+                [{'id':1, 'response': 'dummyResponse1'},
+                 {'id':2, 'response': 'dummyResponse2'}
+                ]
+            )));
+          }
+        ));
+    });
   });
-  
-  
+
+
  }

@@ -3,8 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 
 import 'package:unittest/unittest.dart';
-import 'package:clean_ajax/clean_common.dart';
+import 'package:unittest/mock.dart';
+import 'package:clean_ajax/common.dart';
 
+
+class MockObject extends Mock implements Object {}
 
 void main() {
 
@@ -13,37 +16,11 @@ void main() {
     setUp(() {
     });
 
-    test('Test encoding and decoding ClientRequest with int (T01).', () {
+    test('Test encoding and decoding ClientRequest(T01).', () {
       //given
-      var cr = new ClientRequest('type1', 2);
-
+      var cr = new ClientRequest('type1', new MockObject());
       //when
       var crDecoded = new ClientRequest.fromJson(cr.toJson());
-
-      //then
-      expect(crDecoded.type, equals(cr.type));
-      expect(crDecoded.args, equals(cr.args));
-    });
-
-    test('Test encoding and decoding ClientRequest with list (T02).', () {
-      //given
-      var cr = new ClientRequest('type1', {'a': 1,'b': 2});
-
-      //when
-      var crDecoded = new ClientRequest.fromJson(cr.toJson());
-
-      //then
-      expect(crDecoded.type, equals(cr.type));
-      expect(crDecoded.args, equals(cr.args));
-    });
-
-    test('Test encoding and decoding ClientRequest with map (T03).', () {
-      //given
-      var cr = new ClientRequest('type1', {'a': 1,'b': 2});
-
-      //when
-      var crDecoded = new ClientRequest.fromJson(cr.toJson());
-
       //then
       expect(crDecoded.type, equals(cr.type));
       expect(crDecoded.args, equals(cr.args));

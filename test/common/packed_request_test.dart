@@ -2,9 +2,12 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
+import "dart:convert";
 import 'package:unittest/unittest.dart';
-import 'package:clean_ajax/clean_common.dart';
+import 'package:unittest/mock.dart';
+import 'package:clean_ajax/common.dart';
 
+class MockObject extends Mock implements Object {}
 
 void main() {
 
@@ -13,9 +16,9 @@ void main() {
     setUp(() {
     });
 
-    test('Test encoding and decoding PackedRequest with ClientRequest with int (T01).', () {
+    test('Test encoding and decoding PackedRequest with ClientRequest (T01).', () {
       //given
-      var pr = new PackedRequest(1, new ClientRequest('type1', 2));
+      var pr = new PackedRequest(1, new ClientRequest('type1', new MockObject()));
 
       //when
       var prDecoded = new PackedRequest.fromJson(pr.toJson());
@@ -26,41 +29,14 @@ void main() {
       expect(prDecoded.clientRequest.args, equals(pr.clientRequest.args));
     });
 
-    test('Test encoding and decoding PackedRequest with ClientRequest with list (T02).', () {
+    test('Test encoding and decoding list of PackedRequest (T02).', () {
       //given
-      var pr = new PackedRequest(1, new ClientRequest('type1', ['a', 1, 'b', 2]));
+      var pr1 = new PackedRequest(1, new ClientRequest('type1', new MockObject()));
+      var pr2 = new PackedRequest(1, new ClientRequest('type2', new MockObject()));
+      var list = [pr1, pr2];
 
       //when
-      var prDecoded = new PackedRequest.fromJson(pr.toJson());
-
-      //then
-      expect(prDecoded.id, equals(pr.id));
-      expect(prDecoded.clientRequest.type, equals(pr.clientRequest.type));
-      expect(prDecoded.clientRequest.args, equals(pr.clientRequest.args));
-    });
-
-    test('Test encoding and decoding PackedRequest with ClientRequest with map (T03).', () {
-      //given
-      var pr = new PackedRequest(1, new ClientRequest('type1', {'a': 1,'b': 2}));
-
-      //when
-      var prDecoded = new PackedRequest.fromJson(pr.toJson());
-
-      //then
-      expect(prDecoded.id, equals(pr.id));
-      expect(prDecoded.clientRequest.type, equals(pr.clientRequest.type));
-      expect(prDecoded.clientRequest.args, equals(pr.clientRequest.args));
-    });
-
-    test('Test encoding and decoding list of PackedRequest (T04).', () {
-      //given
-      var pr1 = new PackedRequest(1, new ClientRequest('type1', {'a': 1,'b': 2}));
-      var pr2 = new PackedRequest(1, new ClientRequest('type2', 10));
-      var pr3 = new PackedRequest(1, new ClientRequest('type3', ['c', 3, 'd']));
-      var list = [pr1, pr2, pr3];
-
-      //when
-      var listDecoded = decodeFromJson(encodeToJson(list));
+      var listDecoded = createPackedRequestsfromJson(list.map((one)=>one.toJson()).toList());
 
       //then
       expect(listDecoded.length, equals(list.length));
