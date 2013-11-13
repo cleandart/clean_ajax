@@ -90,9 +90,6 @@ class Server {
     if (_isRunning || _requestQueue.isEmpty ||
         new DateTime.now().difference(_lastResponseTime) < _delayBetweenRequests)
       return;
-
-    print('Sending performHttpRequest');
-
     _isRunning = true;
     var request_list = new List();
     while (!_requestQueue.isEmpty) {
