@@ -154,11 +154,8 @@ void test_server() {
     test('Multiple Requests can be sent in one shot (see sent/arrived order in log in DartEditor)', () {
       MockDelayedHttpRequest.stubResponseTextWith('[{"id": 0, "response": "response1"}, {"id": 1, "response": "response2"}, {"id": 2, "response": "response3"}]');
 
-
-      print('ZACIATOK');
       List runnedTasksOrder = new List.generate(6, (x)=>new Completer());
       int index = 0;
-      var list2 = new List();
       delayedserver.sendRequest( () {
         runnedTasksOrder[index++].complete('req1');
         print("Request 1 sent");
