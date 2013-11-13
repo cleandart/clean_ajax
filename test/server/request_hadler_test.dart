@@ -64,11 +64,11 @@ Future<MockHttpBody> mockHttpBodyExctractor(MockHttpRequest request) =>
 void main() {
 
   group('RequestHandler', () {
-    RequestHandler requestHandler;
+    MultiRequestHandler requestHandler;
     MockHttpBody body;
 
     setUp(() {
-      requestHandler = new RequestHandler.config(mockHttpBodyExctractor);
+      requestHandler = new MultiRequestHandler.config(mockHttpBodyExctractor);
     });
 
 
@@ -77,7 +77,7 @@ void main() {
       var request = new MockHttpRequest(JSON.encode([new PackedRequest(47, new ClientRequest('test1',15))]));
 
       //when
-      requestHandler.serveHttpRequest(request);
+      requestHandler.handleHttpRequest(request);
 
       //then
       request.response.isFinished.then(expectAsync1((MockHttpResponse response) => expect(response.statusCode,HttpStatus.BAD_REQUEST)));
@@ -90,7 +90,7 @@ void main() {
         var request = new MockHttpRequest(JSON.encode([new PackedRequest(47, new ClientRequest('dummyType',15))]));
 
         //when
-        requestHandler.serveHttpRequest(request);
+        requestHandler.handleHttpRequest(request);
 
         //then
         request.response.isFinished.then(expectAsync1(
@@ -108,7 +108,7 @@ void main() {
         var request = new MockHttpRequest(JSON.encode([new PackedRequest(47, new ClientRequest('dummyType',15))]));
 
         //when
-        requestHandler.serveHttpRequest(request);
+        requestHandler.handleHttpRequest(request);
 
         //then
         request.response.isFinished.then(expectAsync1(
@@ -132,7 +132,7 @@ void main() {
                         ]));
 
         //when
-        requestHandler.serveHttpRequest(request);
+        requestHandler.handleHttpRequest(request);
 
         //then
         request.response.isFinished.then(expectAsync1(
@@ -147,6 +147,5 @@ void main() {
         ));
     });
   });
-
 
  }

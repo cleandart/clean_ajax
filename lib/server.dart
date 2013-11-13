@@ -6,7 +6,7 @@
  * A library for server-client communication and interaction
  * Server side
  */
-library clean_server;
+library clean_ajax.server;
 
 import "dart:core";
 import "dart:async";
@@ -16,27 +16,27 @@ import 'package:http_server/http_server.dart';
 
 import 'package:clean_ajax/common.dart';
 export 'package:clean_ajax/common.dart' show ClientRequest, PackedRequest;
+import 'package:clean_backend/clean_backend.dart' show HttpRequestHandler;
 
-typedef Future RequestExecutor(ClientRequest request);
+typedef Future ClientRequestHandler(ClientRequest request);
 typedef Future<HttpBody> HttpBodyExtractor(HttpRequest request);
 
-class RequestHandler {
+class MultiRequestHandler implements HttpRequestHandler {
 
-  final Map<String, RequestExecutor> _registeredExecutors = new Map();
-  RequestExecutor _defaultExecutor = null;
+  final Map<String, ClientRequestHandler> _registeredExecutors = new Map();
+  ClientRequestHandler _defaultExecutor = null;
   final HttpBodyExtractor httpBodyExtractor;
 
-  RequestHandler.config(this.httpBodyExtractor);
+  MultiRequestHandler.config(this.httpBodyExtractor);
 
-  factory RequestHandler() => new RequestHandler.config(HttpBodyHandler.processRequest);
+  factory MultiRequestHandler() => new MultiRequestHandler.config(HttpBodyHandler.processRequest);
 
-  void serveHttpRequest(HttpRequest httpRequest) {
+  void handleHttpRequest(HttpRequest httpRequest) {
     httpBodyExtractor(httpRequest).then((HttpBody body) {
-      var packedRequests = createPackedRequestsfromJson(JSON.decode(body.body));
+      var packedRequests = packedRequestsFromJson(JSON.decode(body.body));
 
       _splitAndProcessRequests(packedRequests).then((response) {
         httpRequest.response
-          ..headers.add("Access-Control-Allow-Origin", "*") // I do not know why this is needed
           ..headers.contentType = ContentType.parse("application/json")
           ..statusCode = HttpStatus.OK
           ..write(JSON.encode(response))
@@ -44,17 +44,11 @@ class RequestHandler {
       }).catchError((e){
         print('Found unknown request:$e');
         httpRequest.response
-          ..headers.add("Access-Control-Allow-Origin", "*") // I do not know why this is needed
           ..headers.contentType = ContentType.parse("application/json")
           ..statusCode = HttpStatus.BAD_REQUEST
           ..close();
       });
     });
-  }
-
-  void _serveBody(HttpBody body,HttpResponse httpResponse)
-  {
-
   }
 
   /**
@@ -65,7 +59,7 @@ class RequestHandler {
     final List responses = new List();
 
     //handlePackedRequest will be function for processing one request
-    var _handlePackedRequest = (PackedRequest request) => _handleClientRequest(request.clientRequest);
+    var handlePackedRequest = (PackedRequest request) => _handleClientRequest(request.clientRequest);
 
     //now you need to call on each element of requests function processingFunc
     //this calls are asynchronous but must run in seqencial order
@@ -74,7 +68,7 @@ class RequestHandler {
     //execution all of next functions and complete returned future with error
     return Future.forEach(
              requests,
-             (PackedRequest request) => _handlePackedRequest(request)
+             (PackedRequest request) => handlePackedRequest(request)
                  .then((response){
                    print("RESPONSE: ${response}");
                    responses.add({'id': request.id, 'response': response});
@@ -103,7 +97,7 @@ class RequestHandler {
     * not registerd.
     * Multiple registration cause exception.
     */
-   void registerDefaultExecutor(RequestExecutor requestExecutor)
+   void registerDefaultExecutor(ClientRequestHandler requestExecutor)
    {
      if (_defaultExecutor == null) {
        _defaultExecutor = requestExecutor;
@@ -117,7 +111,7 @@ class RequestHandler {
     * [ClientRequest.type] setted to [name].
     * Multiple registration for same [name] cause exception.
     */
-   void registerExecutor(String name, RequestExecutor requestExecutor){
+   void registerExecutor(String name, ClientRequestHandler requestExecutor){
      if(_registeredExecutors.containsKey(name)){
        throw new Exception("AlreadyRegistered");
      } else {
@@ -125,4 +119,3 @@ class RequestHandler {
      }
    }
 }
-

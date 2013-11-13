@@ -6,7 +6,7 @@
  * A library for server-client communication and interaction
  * Common parts for client and server parts
  */
-library clean_common;
+library clean_ajax.common;
 
 import "dart:core";
 
@@ -57,6 +57,6 @@ class PackedRequest {
 /**
  *  Decode [List] of Json  maps back into [List] of [PackedRequest]
  */
-List<PackedRequest> createPackedRequestsfromJson(List<Map> json) {
+List<PackedRequest> packedRequestsFromJson(List<Map> json) {
   return json.map((one) => new PackedRequest.fromJson(one)).toList();
 }

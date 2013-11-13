@@ -13,9 +13,6 @@ void main() {
 
   group('Encoding and decoding of ClientRequest', () {
 
-    setUp(() {
-    });
-
     test('Test encoding and decoding ClientRequest(T01).', () {
       //given
       var cr = new ClientRequest('type1', new MockObject());

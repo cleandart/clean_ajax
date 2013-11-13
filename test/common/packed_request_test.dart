@@ -2,7 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-import "dart:convert";
 import 'package:unittest/unittest.dart';
 import 'package:unittest/mock.dart';
 import 'package:clean_ajax/common.dart';
@@ -36,7 +35,7 @@ void main() {
       var list = [pr1, pr2];
 
       //when
-      var listDecoded = createPackedRequestsfromJson(list.map((one)=>one.toJson()).toList());
+      var listDecoded = packedRequestsFromJson(list.map((one)=>one.toJson()).toList());
 
       //then
       expect(listDecoded.length, equals(list.length));

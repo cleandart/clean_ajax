@@ -3,6 +3,10 @@ author: VacuumLabs s.r.o.
 description: Part of the clean.dart framework.
 dependencies:
   browser: any
+  clean_backend:
+    git:
+      ref: remove_ajax
+      url: https://github.com/cleandart/clean_backend
   http_server: any
 dev_dependencies:
   unittest: any

@@ -6,7 +6,7 @@
  * A library for server-client communication and interaction
  * Client side
  */
-library clean_client;
+library clean_ajax.client;
 
 import "dart:core";
 import "dart:async";
@@ -119,4 +119,3 @@ class Server {
     return completer.future;
   }
 }
-
