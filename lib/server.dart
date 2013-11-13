@@ -58,8 +58,6 @@ class MultiRequestHandler implements HttpRequestHandler {
   Future<List> _splitAndProcessRequests(List<PackedRequest> requests) {
     final List responses = new List();
 
-    //handlePackedRequest will be function for processing one request
-    var handlePackedRequest = (PackedRequest request) => _handleClientRequest(request.clientRequest);
 
     //now you need to call on each element of requests function processingFunc
     //this calls are asynchronous but must run in seqencial order
@@ -68,8 +66,8 @@ class MultiRequestHandler implements HttpRequestHandler {
     //execution all of next functions and complete returned future with error
     return Future.forEach(
              requests,
-             (PackedRequest request) => handlePackedRequest(request)
-                 .then((response){
+             (PackedRequest request) =>
+                 _handleClientRequest(request.clientRequest).then((response){
                    print("RESPONSE: ${response}");
                    responses.add({'id': request.id, 'response': response});
                  })
