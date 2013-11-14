@@ -4,6 +4,7 @@
 
 import 'package:unittest/unittest.dart';
 import 'package:unittest/mock.dart';
+import 'package:unittest/html_config.dart';
 import 'package:clean_ajax/clean_ajax.dart';
 import "dart:collection";
 import 'dart:async';
@@ -109,7 +110,7 @@ class MockArgumentedHttpRequest extends MockHttpRequest {
 }
 
 void main() {
-  //useHtmlConfiguration();
+  useHtmlConfiguration();
   test_server();
 }
 
