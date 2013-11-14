@@ -88,8 +88,10 @@ class Server {
    */
   void performHttpRequest() {
     if (_isRunning || _requestQueue.isEmpty ||
-        new DateTime.now().difference(_lastResponseTime) < _delayBetweenRequests)
+        new DateTime.now().difference(_lastResponseTime) < _delayBetweenRequests) {
       return;
+    }
+
     _isRunning = true;
     var request_list = new List();
     while (!_requestQueue.isEmpty) {
