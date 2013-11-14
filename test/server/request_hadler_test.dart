@@ -26,7 +26,6 @@ class MockHttpRequest extends Mock implements HttpRequest
   {
     body = new MockHttpBody(request);
   }
-  noSuchMethod(invocation) => new NullObject();
 }
 
 class MockHttpBody extends Mock implements HttpBody

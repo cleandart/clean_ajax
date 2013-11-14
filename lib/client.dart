@@ -56,7 +56,7 @@ class Server {
   /**
    * Duration of pause between two http requests.
    */
-  Duration _delayBetweenRequests = new Duration(seconds:10);
+  Duration _delayBetweenRequests;
 
   /**
    * Creates a new [Server] with default [HttpRequestFactory]
