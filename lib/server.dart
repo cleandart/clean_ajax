@@ -18,8 +18,15 @@ import 'package:clean_ajax/common.dart';
 export 'package:clean_ajax/common.dart' show ClientRequest, PackedRequest;
 import 'package:clean_backend/clean_backend.dart' show HttpRequestHandler;
 
+/**
+ * Type of handler which can be registered in [MultiRequestHandler] for
+ * processing [ClientRequest]
+ */
 typedef Future ClientRequestHandler(ClientRequest request);
 
+/**
+ * Helper type function extracting [HttpBody] from [HttpRequest]
+ */
 typedef Future<HttpBody> HttpBodyExtractor(HttpRequest request);
 
 /**
@@ -42,7 +49,7 @@ class UnknownHandlerException implements Exception {
 
 /**
  * Exception thrown when a you try register second default handler or
- * handler under same name
+ * handler under same name.
  */
 class AlreadyRegisteredHandlerException implements Exception {
   /**
@@ -58,16 +65,38 @@ class AlreadyRegisteredHandlerException implements Exception {
   String toString() => "Handler aready registed under name: $message";
 }
 
+/**
+ * Class which can process multiple [ClientRequest] send in one [HttpRequest].
+ * Is responsible for unpacking [HttpRequest] and calling aproriate handler which
+ * has been registered inside it.
+ */
 class MultiRequestHandler implements HttpRequestHandler {
 
+  /**
+   * List of handlers for [ClientRequest]. Index is matching with
+   * [ClientRequest.type]
+   */
   final Map<String, ClientRequestHandler> _registeredExecutors = new Map();
+  /**
+   * Default handler form [ClientRequest]
+   */
   ClientRequestHandler _defaultExecutor = null;
+
+  /**
+   *  Helper function for extracting [HttpBody] from [HttpRequest] needed for
+   *  testing
+   */
   final HttpBodyExtractor httpBodyExtractor;
 
   MultiRequestHandler.config(this.httpBodyExtractor);
 
   factory MultiRequestHandler() => new MultiRequestHandler.config(HttpBodyHandler.processRequest);
 
+  /**
+   * Process [HttpRequest] extract from it [HttpBody]
+   * then extract [PackedRequest]s process them and generate proper
+   * [HttpResponse]
+   */
   void handleHttpRequest(HttpRequest httpRequest) {
     httpBodyExtractor(httpRequest).then((HttpBody body) {
       var packedRequests = packedRequestsFromJson(JSON.decode(body.body));
@@ -88,18 +117,16 @@ class MultiRequestHandler implements HttpRequestHandler {
   }
 
   /**
-   * Run asynchroniusly requests in order as they are presented in [requests]
+   * Run asynchroniusly [PackedRequest]s in order as they are presented in [requests]
    * and return list of processed results from each request.
    */
   Future<List> _splitAndProcessRequests(List<PackedRequest> requests) {
     final List responses = new List();
-
-
-    //now you need to call on each element of requests function processingFunc
+    //now you need to call on each element of requests function _handleClientRequest
     //this calls are asynchronous but must run in seqencial order
     //results from calls are collected inside response
     //if you encounter error durig execution of any fuction run you end
-    //execution all of next functions and complete returned future with error
+    //execution of all next functions and complete future result with error
     return Future.forEach(
              requests,
              (PackedRequest request) =>
@@ -111,9 +138,10 @@ class MultiRequestHandler implements HttpRequestHandler {
   }
 
   /**
-   * Try to find which executor should handle [ClientRequest].
+   * Try to find which handler should execute [ClientRequest].
    * If for [ClientRequest.type] is not not registered any executor than will
-   * try to run default executor if presented. In other cases throws exception.
+   * try to run default executor if presented. In other cases throws
+   * exception [UnknownHandlerException].
    */
    Future _handleClientRequest(ClientRequest request){
      if(_registeredExecutors.containsKey(request.type)){
@@ -126,10 +154,10 @@ class MultiRequestHandler implements HttpRequestHandler {
    }
 
    /**
-    * Register default [RequestExecutor] for incomming [ClientRequest]
+    * Register default [ClientRequestHandler] for incomming [ClientRequest]
     * Default executor is called only if executor for [ClientRequest.type] is
     * not registerd.
-    * Multiple registration cause exception.
+    * Multiple registration cause exception [AlreadyRegisteredHandlerException].
     */
    void registerDefaultHandler(ClientRequestHandler requestExecutor)
    {
@@ -141,9 +169,9 @@ class MultiRequestHandler implements HttpRequestHandler {
    }
 
    /**
-    * Register [RequestExecutor] for incomming [ClientRequest] with
-    * [ClientRequest.type] setted to [name].
-    * Multiple registration for same [name] cause exception.
+    * Register [ClientRequestHandler] for incomming [ClientRequest] with
+    * [ClientRequest.type] setted to [name]. Multiple registration for
+    * same [name] cause exception [AlreadyRegisteredHandlerException].
     */
    void registerHandler(String name, ClientRequestHandler requestExecutor){
      if(_registeredExecutors.containsKey(name)){

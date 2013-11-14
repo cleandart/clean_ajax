@@ -7,10 +7,13 @@ import 'package:static_file_handler/static_file_handler.dart';
 import 'package:clean_ajax/server.dart';
 import 'dart:async';
 
+Future simpleClientRequestHandler(ClientRequest request) =>
+    new Future.value(request.args);
+
 void main() {
   Backend backend;
-  StaticFileHandler fileHandler = new StaticFileHandler.serveFolder('/home/maty/vacuumlabs/git/');
+  StaticFileHandler fileHandler = new StaticFileHandler.serveFolder('.');
   MultiRequestHandler requestHandler = new MultiRequestHandler();
-  requestHandler.registerDefaultHandler((ClientRequest request) => new Future.value(request.args));
+  requestHandler.registerDefaultHandler(simpleClientRequestHandler);
   backend = new Backend(fileHandler, requestHandler)..listen();
 }
