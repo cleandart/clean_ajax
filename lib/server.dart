@@ -19,7 +19,26 @@ export 'package:clean_ajax/common.dart' show ClientRequest, PackedRequest;
 import 'package:clean_backend/clean_backend.dart' show HttpRequestHandler;
 
 typedef Future ClientRequestHandler(ClientRequest request);
+
 typedef Future<HttpBody> HttpBodyExtractor(HttpRequest request);
+
+/**
+ * Exception thrown when a MultiRequestHandler can pass one of multiple
+ * request to any handler
+ */
+class UnknownHandlerException implements Exception {
+  /**
+   * A message describing the format error.
+   */
+  final String message;
+
+  /**
+   * Creates a new FormatException with an optional error [message].
+   */
+  const UnknownHandlerException([this.message = ""]);
+
+  String toString() => "UnknownHandlerException: $message";
+}
 
 class MultiRequestHandler implements HttpRequestHandler {
 
@@ -42,12 +61,11 @@ class MultiRequestHandler implements HttpRequestHandler {
           ..write(JSON.encode(response))
           ..close();
       }).catchError((e){
-        print('Found unknown request:$e');
         httpRequest.response
           ..headers.contentType = ContentType.parse("application/json")
           ..statusCode = HttpStatus.BAD_REQUEST
           ..close();
-      });
+      },test: (e) => e is UnknownHandlerException);
     });
   }
 
@@ -70,7 +88,7 @@ class MultiRequestHandler implements HttpRequestHandler {
              requests,
              (PackedRequest request) => handlePackedRequest(request)
                  .then((response){
-                   print("RESPONSE: ${response}");
+                   //print("RESPONSE: ${response}");
                    responses.add({'id': request.id, 'response': response});
                  })
            ).then((_)=>new Future.value(responses));
@@ -87,7 +105,7 @@ class MultiRequestHandler implements HttpRequestHandler {
      } else if(_defaultExecutor != null) {
        return _defaultExecutor(request);
      } else {
-       return new Future.error("${request.type}");
+       return new Future.error(new UnknownHandlerException(request.type));
      }
    }
 
