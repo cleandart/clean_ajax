@@ -11,6 +11,6 @@ void main() {
   Backend backend;
   StaticFileHandler fileHandler = new StaticFileHandler.serveFolder('/home/maty/vacuumlabs/git/');
   MultiRequestHandler requestHandler = new MultiRequestHandler();
-  requestHandler.registerDefaultExecutor((ClientRequest request) => new Future.value(request.args));
+  requestHandler.registerDefaultHandler((ClientRequest request) => new Future.value(request.args));
   backend = new Backend(fileHandler, requestHandler)..listen();
 }

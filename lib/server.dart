@@ -40,6 +40,24 @@ class UnknownHandlerException implements Exception {
   String toString() => "UnknownHandlerException: $message";
 }
 
+/**
+ * Exception thrown when a you try register second default handler or
+ * handler under same name
+ */
+class AlreadyRegisteredHandlerException implements Exception {
+  /**
+   * A message describing the format error.
+   */
+  final String message;
+
+  /**
+   * Creates a new FormatException with an optional error [message].
+   */
+  const AlreadyRegisteredHandlerException([this.message = ""]);
+
+  String toString() => "Handler aready registed under name: $message";
+}
+
 class MultiRequestHandler implements HttpRequestHandler {
 
   final Map<String, ClientRequestHandler> _registeredExecutors = new Map();
@@ -113,12 +131,12 @@ class MultiRequestHandler implements HttpRequestHandler {
     * not registerd.
     * Multiple registration cause exception.
     */
-   void registerDefaultExecutor(ClientRequestHandler requestExecutor)
+   void registerDefaultHandler(ClientRequestHandler requestExecutor)
    {
      if (_defaultExecutor == null) {
        _defaultExecutor = requestExecutor;
      } else {
-       throw new Exception("AlreadyRegistered");
+       throw new AlreadyRegisteredHandlerException("");
      }
    }
 
@@ -127,9 +145,9 @@ class MultiRequestHandler implements HttpRequestHandler {
     * [ClientRequest.type] setted to [name].
     * Multiple registration for same [name] cause exception.
     */
-   void registerExecutor(String name, ClientRequestHandler requestExecutor){
+   void registerHandler(String name, ClientRequestHandler requestExecutor){
      if(_registeredExecutors.containsKey(name)){
-       throw new Exception("AlreadyRegistered");
+       throw new AlreadyRegisteredHandlerException(name);
      } else {
        _registeredExecutors[name] = requestExecutor;
      }

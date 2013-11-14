@@ -71,7 +71,7 @@ void main() {
     test('One ClientRequestHandler execution (TO2).', () {
         //given
         Future mockExecutor(request) => new Future.value('dummyResponse');
-        requestHandler.registerExecutor('dummyType', mockExecutor);
+        requestHandler.registerHandler('dummyType', mockExecutor);
         var request = new MockHttpRequest(JSON.encode([new PackedRequest(47, new ClientRequest('dummyType',15))]));
 
         //when
@@ -88,7 +88,7 @@ void main() {
     test('Default ClientRequestHandler execution (TO3).', () {
         //given
         Future mockExecutor(request) => new Future.value('dummyResponse');
-        requestHandler.registerDefaultExecutor(mockExecutor);
+        requestHandler.registerDefaultHandler(mockExecutor);
         var request = new MockHttpRequest(JSON.encode([new PackedRequest(47, new ClientRequest('dummyType',15))]));
 
         //when
@@ -110,7 +110,7 @@ void main() {
           orderOfExecution.add(request.args.toString());
           return new Future.value(request.type);
         }
-        requestHandler.registerDefaultExecutor(mockExecutor);
+        requestHandler.registerDefaultHandler(mockExecutor);
 
         var request = new MockHttpRequest(
             JSON.encode([new PackedRequest(1, new ClientRequest('dummyType1','firstRequest')),
@@ -133,8 +133,8 @@ void main() {
         //given
         Future mockExecutorSpecific(request) => new Future.delayed(new Duration(seconds: 2),()=>'specificResponse');
         Future mockExecutorDefault(request) => new Future.value('defaultResponse');
-        requestHandler.registerExecutor('specificType',mockExecutorSpecific);
-        requestHandler.registerDefaultExecutor(mockExecutorDefault);
+        requestHandler.registerHandler('specificType',mockExecutorSpecific);
+        requestHandler.registerDefaultHandler(mockExecutorDefault);
 
         var request = new MockHttpRequest(
             JSON.encode([new PackedRequest(1, new ClientRequest('specificType',10)),
