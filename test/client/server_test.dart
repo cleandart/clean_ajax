@@ -106,7 +106,7 @@ void test_server() {
       expect(res2, completion(equals('response3')));
     });
 
-    test('Multiple Requests can be sent in one shot (see sent/arrived order in log in DartEditor)', () {
+    test('Multiple Requests can be sent in one request.', () {
       // given
       remoteServer.delay = new Duration(seconds: 1);
       remoteServer.setResponse('dummyType', 'dummyArgs1', 'response1');

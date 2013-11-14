@@ -7,6 +7,9 @@ import 'package:static_file_handler/static_file_handler.dart';
 import 'package:clean_ajax/server.dart';
 import 'dart:async';
 
+// Don't run example_client.dart nor index.html instead run example_server.dart and go
+// in dartium to address 0.0.0.0:8080
+
 Future simpleClientRequestHandler(ClientRequest request) =>
     new Future.value(request.args);
 

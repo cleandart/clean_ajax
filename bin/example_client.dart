@@ -2,8 +2,9 @@ import 'dart:async';
 import 'dart:html';
 import "package:clean_ajax/client.dart";
 
-/// Dont run example_client.dart nor index.html instead run example_server.dart and go
-/// in dartium to address 0.0.0.0:8080
+// Don't run example_client.dart nor index.html instead run example_server.dart and go
+// in dartium to address 0.0.0.0:8080
+
 void main() {
   Server server = new Server("http://0.0.0.0:8080/resources",new Duration(milliseconds: 200));
 
