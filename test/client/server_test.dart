@@ -52,7 +52,7 @@ class MockDelayedHttpRequest extends MockHttpRequest {
   static get stubResponseTextWith => MockHttpRequest.stubResponseTextWith;
 
   send(request) {
-    Timer timer = new Timer(new Duration(seconds: 1), () {
+    Timer timer = new Timer(new Duration(seconds: 5), () {
       _loadStream.add(this);
     });
   }
@@ -121,9 +121,10 @@ void test_server() {
     Server delayedserver;
     Server parsingserver;
     setUp(() {
-      server = new Server.config(MockHttpRequest.request, 'localhost');
-      delayedserver = new Server.config(MockDelayedHttpRequest.request, 'localhost');
-      parsingserver = new Server.config(MockArgumentedHttpRequest.request, 'localhost');
+      var duration100ms = new Duration(milliseconds:100);
+      server = new Server.config(MockHttpRequest.request, 'localhost', duration100ms);
+      delayedserver = new Server.config(MockDelayedHttpRequest.request, 'localhost', duration100ms);
+      parsingserver = new Server.config(MockArgumentedHttpRequest.request, 'localhost', duration100ms);
     });
 
     test('Single Request receives a response', () {
@@ -153,12 +154,8 @@ void test_server() {
     test('Multiple Requests can be sent in one shot (see sent/arrived order in log in DartEditor)', () {
       MockDelayedHttpRequest.stubResponseTextWith('[{"id": 0, "response": "response1"}, {"id": 1, "response": "response2"}, {"id": 2, "response": "response3"}]');
 
-
-
       List runnedTasksOrder = new List.generate(6, (x)=>new Completer());
       int index = 0;
-
-
       delayedserver.sendRequest( () {
         runnedTasksOrder[index++].complete('req1');
         print("Request 1 sent");
@@ -192,8 +189,8 @@ void test_server() {
       //check order of execution
       Future.wait(runnedTasksOrder.map((one)=>one.future).toList())
             .then(expectAsync1( (list) {
-              print("All is send and recived - check order");
-              expect(list, equals(['req1', 'req2', 'req3', 'res1', 'res2', 'res3']));
+              print("All is send and recived - check order $list");
+              expect(list, equals(['req1', 'res1','req2', 'req3', 'res2', 'res3']));
             }));
 
     });

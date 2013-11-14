@@ -49,16 +49,26 @@ class Server {
   bool _isRunning = false;
 
   /**
+   * Indicate time when last response come
+   */
+  DateTime _lastResponseTime = new DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+
+  /**
+   * Duration of pause between two http requests.
+   */
+  Duration _delayBetweenRequests;
+
+  /**
    * Creates a new [Server] with default [HttpRequestFactory]
    */
-  factory Server(url) {
-    return new Server.config(HttpRequest.request, url);
+  factory Server(url, Duration delayBetweenRequests) {
+    return new Server.config(HttpRequest.request, url, delayBetweenRequests);
   }
 
   /**
    * Creates a new [Server] with specified [HttpRequestFactory]
    */
-  Server.config(this._factory, this._url);
+  Server.config(this._factory, this._url, this._delayBetweenRequests);
 
   /**
    * Maps [Request] names to their future responses.
@@ -77,35 +87,38 @@ class Server {
    * after this one.
    */
   void performHttpRequest() {
-    if (this._isRunning || this._requestQueue.isEmpty) {
+    if (_isRunning || _requestQueue.isEmpty ||
+        new DateTime.now().difference(_lastResponseTime) < _delayBetweenRequests) {
       return;
     }
-    this._isRunning = true;
+
+    _isRunning = true;
     var request_list = new List();
-    while (!this._requestQueue.isEmpty) {
-      var map = this._requestQueue.removeFirst();
+    while (!_requestQueue.isEmpty) {
+      var map = _requestQueue.removeFirst();
       var clientRequest = map['createRequest'](); // create the request
       request_list.add(new PackedRequest(requestCount, clientRequest));
-      this._responseMap[requestCount++] = map['completer'];
+      _responseMap[requestCount++] = map['completer'];
     }
 
-    this._factory(this._url, method: 'POST',
+    _factory(_url, method: 'POST',
       sendData: JSON.encode(request_list)).then((xhr) {
         var list = JSON.decode(xhr.responseText);
         for (var responseMap in list) {
           var id = responseMap['id'];
           var response = responseMap['response'];
-          if (this._responseMap.containsKey(id)) {
-            this._responseMap[id].complete(response);
-            this._responseMap.remove(id);
+          if (_responseMap.containsKey(id)) {
+            _responseMap[id].complete(response);
+            _responseMap.remove(id);
           }
         }
-        this._responseMap.forEach((id, request) {
+        _responseMap.forEach((id, request) {
           throw new Exception("Request $id was not answered!");
         });
-        this._isRunning = false;
-        this.performHttpRequest();
-      });
+        _isRunning = false;
+        _lastResponseTime = new DateTime.now();
+        new Timer(_delayBetweenRequests, performHttpRequest);
+    });
   }
 
   /**
@@ -114,8 +127,8 @@ class Server {
    */
   Future sendRequest(CreateRequest createRequest) {
     var completer = new Completer();
-    this._requestQueue.add({'createRequest': createRequest, 'completer': completer});
-    this.performHttpRequest();
+    _requestQueue.add({'createRequest': createRequest, 'completer': completer});
+    performHttpRequest();
     return completer.future;
   }
 }
