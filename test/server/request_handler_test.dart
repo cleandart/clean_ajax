@@ -12,8 +12,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http_server/http_server.dart';
 
-
-
 class MockHttpBody extends Mock implements HttpBody {}
 
 class MockHttpRequest extends Mock implements HttpRequest {

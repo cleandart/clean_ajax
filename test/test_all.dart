@@ -7,10 +7,11 @@ library test_all;
 import "common/packed_request_test.dart" as packed_request_test;
 import "common/client_request_test.dart" as client_request_test;
 import "server/request_handler_test.dart" as request_handler_test;
-
+import "client/connection_test.dart" as connection_handler_test;
 
 void main() {
   packed_request_test.main();
   client_request_test.main();
   request_handler_test.main();
+  connection_handler_test.main();
 }

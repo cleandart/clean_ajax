@@ -11,7 +11,6 @@ library clean_ajax.client;
 import "dart:core";
 import "dart:async";
 import "dart:collection";
-import "dart:html";
 import "dart:convert";
 
 import 'package:clean_ajax/common.dart';
@@ -57,13 +56,6 @@ class Connection {
    * Duration of pause between two http requests.
    */
   Duration _delayBetweenRequests;
-
-  /**
-   * Creates a new [Connection] with default [HttpRequestFactory]
-   */
-  factory Connection(url, Duration delayBetweenRequests) {
-    return new Connection.config(HttpRequest.request, url, delayBetweenRequests);
-  }
 
   /**
    * Creates a new [Connection] with specified [HttpRequestFactory]

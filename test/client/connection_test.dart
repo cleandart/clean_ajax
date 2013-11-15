@@ -4,7 +4,7 @@
 
 import 'package:unittest/unittest.dart';
 import 'package:unittest/mock.dart';
-import 'package:unittest/html_config.dart';
+//import 'package:unittest/html_config.dart';
 import 'package:clean_ajax/client.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -39,11 +39,6 @@ class MockRemoteHttpServer extends Mock
 }
 
 void main() {
-  useHtmlConfiguration();
-  test_server();
-}
-
-void test_server() {
   group('Server', () {
 
     Connection connection;
