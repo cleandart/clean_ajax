@@ -70,7 +70,7 @@ class AlreadyRegisteredHandlerException implements Exception {
  * Is responsible for unpacking [HttpRequest] and calling aproriate handler which
  * has been registered inside it.
  */
-class MultiRequestHandler implements HttpRequestHandler {
+class MultiRequestHandler {
 
   /**
    * List of handlers for [ClientRequest]. Index is matching with
