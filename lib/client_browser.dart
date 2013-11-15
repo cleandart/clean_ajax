@@ -18,8 +18,5 @@ class Connection extends Client.Connection
   /**
    * Creates a new [Connection] with default [HttpRequestFactory]
    */
-  factory Connection(url, Duration delayBetweenRequests) {
-    return new Client.Connection.config(HttpRequest.request, url, delayBetweenRequests);
-  }
-
+  Connection(url, Duration delayBetweenRequests) : super.config(HttpRequest.request, url, delayBetweenRequests) ;
 }
