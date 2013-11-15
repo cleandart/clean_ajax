@@ -6,13 +6,13 @@ import "package:clean_ajax/client.dart";
 // in dartium to address 0.0.0.0:8080
 
 void main() {
-  Server server = new Server("http://0.0.0.0:8080/resources",new Duration(milliseconds: 200));
+  Connection connection = new Connection("http://0.0.0.0:8080/resources",new Duration(milliseconds: 200));
 
   querySelector('#send').onClick.listen((_) {
     InputElement request = querySelector("#request");
     ParagraphElement responseElem = querySelector("#response");
 
-    server.sendRequest(()=>new ClientRequest('dummyType',request.value)).then(
+    connection.sendRequest(()=>new ClientRequest('dummyType',request.value)).then(
         (response) => responseElem.text = response
     );
   });

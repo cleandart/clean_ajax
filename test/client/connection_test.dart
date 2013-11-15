@@ -46,12 +46,12 @@ void main() {
 void test_server() {
   group('Server', () {
 
-    Server server;
+    Connection connection;
     MockRemoteHttpServer remoteServer;
 
     setUp(() {
       remoteServer = new MockRemoteHttpServer();
-      server = new Server.config(remoteServer.sendRequest, 'localhost', new Duration(milliseconds:100));
+      connection = new Connection.config(remoteServer.sendRequest, 'localhost', new Duration(milliseconds:100));
     });
 
     test('Single Request receives a response', () {
@@ -59,7 +59,7 @@ void test_server() {
       remoteServer.setResponse('dummyType', 'dummyArgs','dummyResponse');
 
       // when
-      var response = server.sendRequest( () => new ClientRequest('dummyType', 'dummyArgs'));
+      var response = connection.sendRequest( () => new ClientRequest('dummyType', 'dummyArgs'));
 
       //then
       expect(response, completion(equals('dummyResponse')));
@@ -72,8 +72,8 @@ void test_server() {
       remoteServer.setResponse('dummyType', 'dummyArgs2', 'testvalue4');
 
       // when
-      var res1 = server.sendRequest( () => new ClientRequest('dummyType', 'dummyArgs1'));
-      var res2 = server.sendRequest( () => new ClientRequest('dummyType', 'dummyArgs2'));
+      var res1 = connection.sendRequest( () => new ClientRequest('dummyType', 'dummyArgs1'));
+      var res2 = connection.sendRequest( () => new ClientRequest('dummyType', 'dummyArgs2'));
 
       // then
       expect(res1,completion(equals('testvalue3')));
@@ -85,7 +85,7 @@ void test_server() {
       remoteServer.setResponse('dummyType', 'dummyArgs', ['response1', 'response2']);
 
       // when
-      var res = server.sendRequest( () => new ClientRequest('dummyType', 'dummyArgs'));
+      var res = connection.sendRequest( () => new ClientRequest('dummyType', 'dummyArgs'));
 
       // then
       expect(res,completion(equals(['response1', 'response2'])));
@@ -98,8 +98,8 @@ void test_server() {
       remoteServer.setResponse('dummyType', 'dummyArgs2', 'response3');
 
       // when
-      var res1 = server.sendRequest( () => new ClientRequest('dummyType', 'dummyArgs1'));
-      var res2 = server.sendRequest( () => new ClientRequest('dummyType', 'dummyArgs2'));
+      var res1 = connection.sendRequest( () => new ClientRequest('dummyType', 'dummyArgs1'));
+      var res2 = connection.sendRequest( () => new ClientRequest('dummyType', 'dummyArgs2'));
 
       // then
       expect(res1, completion(equals('response2')));
@@ -120,15 +120,15 @@ void test_server() {
       }
 
       // when
-      var res1 = server.sendRequest( () {
+      var res1 = connection.sendRequest( () {
         logAction('req1');
         return new ClientRequest('dummyType', 'dummyArgs1');
       });
-      var res2 = server.sendRequest( () {
+      var res2 = connection.sendRequest( () {
         logAction('req2');
         return new ClientRequest('dummyType', 'dummyArgs2');
       });
-      var res3 = server.sendRequest( () {
+      var res3 = connection.sendRequest( () {
         logAction('req3');
         return new ClientRequest('dummyType', 'dummyArgs3');
       });

@@ -23,7 +23,7 @@ typedef HttpRequestFactory(String url, {String method, bool withCredentials,
 
 typedef ClientRequest CreateRequest();
 
-class Server {
+class Connection {
   /**
    * RequestFactory is a function like HttpRequest.request() that returns
    * [Future<HttpRequest>].
@@ -59,16 +59,16 @@ class Server {
   Duration _delayBetweenRequests;
 
   /**
-   * Creates a new [Server] with default [HttpRequestFactory]
+   * Creates a new [Connection] with default [HttpRequestFactory]
    */
-  factory Server(url, Duration delayBetweenRequests) {
-    return new Server.config(HttpRequest.request, url, delayBetweenRequests);
+  factory Connection(url, Duration delayBetweenRequests) {
+    return new Connection.config(HttpRequest.request, url, delayBetweenRequests);
   }
 
   /**
-   * Creates a new [Server] with specified [HttpRequestFactory]
+   * Creates a new [Connection] with specified [HttpRequestFactory]
    */
-  Server.config(this._factory, this._url, this._delayBetweenRequests);
+  Connection.config(this._factory, this._url, this._delayBetweenRequests);
 
   /**
    * Maps [Request] names to their future responses.
