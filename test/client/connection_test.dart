@@ -2,6 +2,8 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
+library connection_test;
+
 import 'package:unittest/unittest.dart';
 import 'package:unittest/mock.dart';
 //import 'package:unittest/html_config.dart';
@@ -41,12 +43,12 @@ class MockRemoteHttpServer extends Mock
 void main() {
   group('Server', () {
 
-    Connection connection;
+    HttpConnection connection;
     MockRemoteHttpServer remoteServer;
 
     setUp(() {
       remoteServer = new MockRemoteHttpServer();
-      connection = new Connection.config(remoteServer.sendRequest, 'localhost', new Duration(milliseconds:100));
+      connection = new HttpConnection.config(remoteServer.sendRequest, 'localhost', new Duration(milliseconds:100));
     });
 
     test('Single Request receives a response', () {

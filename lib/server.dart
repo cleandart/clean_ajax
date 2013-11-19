@@ -106,6 +106,10 @@ class MultiRequestHandler {
       },test: (e) => e is UnknownHandlerException);
   }
 
+  Future<List> handleLoopBackRequest(List<PackedRequest> requests) {
+    return _splitAndProcessRequests(requests);
+  }
+
   /**
    * Run asynchroniusly [PackedRequest]s in order as they are presented in [requests]
    * and return list of processed results from each request.

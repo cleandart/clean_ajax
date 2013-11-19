@@ -16,13 +16,42 @@ import "dart:convert";
 import 'package:clean_ajax/common.dart';
 export 'package:clean_ajax/common.dart' show ClientRequest;
 
+
+
+/**
+ * Abstract representation of connection to server.
+ */
+abstract class Connection {
+
+  /**
+   * Queue of unprepared [ClientRequest]s.
+   * The map entry should contain these keys and values:
+   *   'createRequest': [CreateRequest] object
+   *   'completer': [Completer] object which returns response for the request
+   */
+  final Queue<Map> _requestQueue = new Queue<Map>();
+
+  void performRequest();
+
+  /**
+   * Puts the Unprepared Request to queue.
+   * Returns Future object that completes when the request receives response.
+   */
+  Future sendRequest(CreateRequest createRequest) {
+    var completer = new Completer();
+    _requestQueue.add({'createRequest': createRequest, 'completer': completer});
+    performRequest();
+    return completer.future;
+  }
+}
+
 typedef HttpRequestFactory(String url, {String method, bool withCredentials,
   String responseType, String mimeType, Map<String, String> requestHeaders,
   sendData, void onProgress(e)});
 
 typedef ClientRequest CreateRequest();
 
-class Connection {
+class HttpConnection extends Connection {
   /**
    * RequestFactory is a function like HttpRequest.request() that returns
    * [Future<HttpRequest>].
@@ -33,14 +62,6 @@ class Connection {
    * The URL where to perform requests.
    */
   final String _url;
-
-  /**
-   * Queue of unprepared [ClientRequest]s.
-   * The map entry should contain these keys and values:
-   *   'createRequest': [CreateRequest] object
-   *   'completer': [Completer] object which returns response for the request
-   */
-  final Queue<Map> _requestQueue = new Queue<Map>();
 
   /**
    * Indicates whether a [HttpRequest] is currently on the way.
@@ -60,7 +81,7 @@ class Connection {
   /**
    * Creates a new [Connection] with specified [HttpRequestFactory]
    */
-  Connection.config(this._factory, this._url, this._delayBetweenRequests);
+  HttpConnection.config(this._factory, this._url, this._delayBetweenRequests);
 
   /**
    * Maps [Request] names to their future responses.
@@ -78,7 +99,7 @@ class Connection {
    * for the time this request is running and hooks up another request
    * after this one.
    */
-  void performHttpRequest() {
+  void performRequest() {
     if (_isRunning || _requestQueue.isEmpty ||
         new DateTime.now().difference(_lastResponseTime) < _delayBetweenRequests) {
       return;
@@ -109,18 +130,7 @@ class Connection {
         });
         _isRunning = false;
         _lastResponseTime = new DateTime.now();
-        new Timer(_delayBetweenRequests, performHttpRequest);
+        new Timer(_delayBetweenRequests, performRequest);
     });
-  }
-
-  /**
-   * Puts the Unprepared Request to queue.
-   * Returns Future object that completes when the request receives response.
-   */
-  Future sendRequest(CreateRequest createRequest) {
-    var completer = new Completer();
-    _requestQueue.add({'createRequest': createRequest, 'completer': completer});
-    performHttpRequest();
-    return completer.future;
   }
 }

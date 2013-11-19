@@ -6,7 +6,7 @@ import "package:clean_ajax/client_browser.dart";
 // in dartium to address 0.0.0.0:8080
 
 void main() {
-  Connection connection = new Connection("http://0.0.0.0:8080/resources",new Duration(milliseconds: 200));
+  HttpConnection connection = new HttpConnection("http://0.0.0.0:8080/resources",new Duration(milliseconds: 200));
 
   querySelector('#send').onClick.listen((_) {
     InputElement request = querySelector("#request");

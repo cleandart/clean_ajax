@@ -13,10 +13,10 @@ import 'package:clean_ajax/client.dart' as Client;
 export 'package:clean_ajax/client.dart' show ClientRequest, HttpRequestFactory;
 
 
-class Connection extends Client.Connection
+class HttpConnection extends Client.HttpConnection
 {
   /**
    * Creates a new [Connection] with default [HttpRequestFactory]
    */
-  Connection(url, Duration delayBetweenRequests) : super.config(HttpRequest.request, url, delayBetweenRequests) ;
+  HttpConnection(url, Duration delayBetweenRequests) : super.config(HttpRequest.request, url, delayBetweenRequests) ;
 }
