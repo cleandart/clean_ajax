@@ -11,19 +11,23 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http_server/http_server.dart';
+import 'package:clean_backend/clean_backend.dart' show Request;
 
 class MockHttpBody extends Mock implements HttpBody {}
+class MockHttpResponse extends Mock implements HttpResponse {}
+class MockHttpHeaders extends Mock implements HttpHeaders {}
 
 class MockHttpRequest extends Mock implements HttpRequest {
   Mock httpBody = new MockHttpBody();
-  Mock httpResponse = new Mock();
-  Mock httpHeaders = new Mock();
+  Mock httpResponse = new MockHttpResponse();
+  Mock httpHeaders = new MockHttpHeaders();
   MockHttpRequest(String body) {
     httpBody.when(callsTo('get body')).alwaysReturn(body);
     when(callsTo('get response')).alwaysReturn(httpResponse);
     httpResponse.when(callsTo('get headers')).alwaysReturn(httpHeaders);
   }
 }
+
 
 Future mockHttpBodyExctractor(MockHttpRequest request) =>
     new Future.value(request.httpBody);
@@ -34,7 +38,7 @@ void main() {
     MultiRequestHandler requestHandler;
 
     setUp(() {
-      requestHandler = new MultiRequestHandler.config(mockHttpBodyExctractor);
+      requestHandler = new MultiRequestHandler();
     });
 
     verifyCorrectRequestMetaData(request, expectedHttpStatusCode) {
@@ -55,7 +59,8 @@ void main() {
 
     test('No ClientRequestHandler registered (T01).', () {
       //given
-      var request = new MockHttpRequest(JSON.encode([new PackedRequest(47, new ClientRequest('test1',15))]));
+      var httpRequest = new MockHttpRequest(JSON.encode([new PackedRequest(47, new ClientRequest('test1',15))]));
+      Request request = new Request('type', httpRequest.httpBody.body, httpRequest.response, httpRequest.headers, httpRequest);
       //when
       requestHandler.handleHttpRequest(request);
 
@@ -70,7 +75,8 @@ void main() {
         //given
         Future mockExecutor(request) => new Future.value('dummyResponse');
         requestHandler.registerHandler('dummyType', mockExecutor);
-        var request = new MockHttpRequest(JSON.encode([new PackedRequest(47, new ClientRequest('dummyType',15))]));
+        var httpRequest = new MockHttpRequest(JSON.encode([new PackedRequest(47, new ClientRequest('dummyType',15))]));
+        Request request = new Request('type', httpRequest.httpBody.body, httpRequest.response, httpRequest.headers, httpRequest);
 
         //when
         requestHandler.handleHttpRequest(request);
@@ -87,7 +93,8 @@ void main() {
         //given
         Future mockExecutor(request) => new Future.value('dummyResponse');
         requestHandler.registerDefaultHandler(mockExecutor);
-        var request = new MockHttpRequest(JSON.encode([new PackedRequest(47, new ClientRequest('dummyType',15))]));
+        var httpRequest = new MockHttpRequest(JSON.encode([new PackedRequest(47, new ClientRequest('dummyType',15))]));
+        Request request = new Request('type', httpRequest.httpBody.body, httpRequest.response, httpRequest.headers, httpRequest);
 
         //when
         requestHandler.handleHttpRequest(request);
@@ -110,10 +117,11 @@ void main() {
         }
         requestHandler.registerDefaultHandler(mockExecutor);
 
-        var request = new MockHttpRequest(
+        var httpRequest = new MockHttpRequest(
             JSON.encode([new PackedRequest(1, new ClientRequest('dummyType1','firstRequest')),
                          new PackedRequest(2, new ClientRequest('dummyType2','secondRequest'))
                         ]));
+        Request request = new Request('type', httpRequest.httpBody.body, httpRequest.response, httpRequest.headers, httpRequest);
 
         //when
         requestHandler.handleHttpRequest(request);
@@ -134,10 +142,11 @@ void main() {
         requestHandler.registerHandler('specificType',mockExecutorSpecific);
         requestHandler.registerDefaultHandler(mockExecutorDefault);
 
-        var request = new MockHttpRequest(
+        var httpRequest = new MockHttpRequest(
             JSON.encode([new PackedRequest(1, new ClientRequest('specificType',10)),
                          new PackedRequest(2, new ClientRequest('dummyType',12))
                         ]));
+        Request request = new Request('type', httpRequest.httpBody.body, httpRequest.response, httpRequest.headers, httpRequest);
 
         //when
         requestHandler.handleHttpRequest(request);

@@ -16,7 +16,7 @@ import 'package:http_server/http_server.dart';
 
 import 'package:clean_ajax/common.dart';
 export 'package:clean_ajax/common.dart' show ClientRequest, PackedRequest;
-import 'package:clean_backend/clean_backend.dart' show HttpRequestHandler;
+import 'package:clean_backend/clean_backend.dart' show Request;
 
 /**
  * Type of handler which can be registered in [MultiRequestHandler] for
@@ -82,38 +82,28 @@ class MultiRequestHandler {
    */
   ClientRequestHandler _defaultExecutor = null;
 
-  /**
-   *  Helper function for extracting [HttpBody] from [HttpRequest] needed for
-   *  testing
-   */
-  final HttpBodyExtractor httpBodyExtractor;
 
-  MultiRequestHandler.config(this.httpBodyExtractor);
-
-  factory MultiRequestHandler() => new MultiRequestHandler.config(HttpBodyHandler.processRequest);
 
   /**
    * Process [HttpRequest] extract from it [HttpBody]
    * then extract [PackedRequest]s process them and generate proper
    * [HttpResponse]
    */
-  void handleHttpRequest(HttpRequest httpRequest) {
-    httpBodyExtractor(httpRequest).then((HttpBody body) {
-      var packedRequests = packedRequestsFromJson(JSON.decode(body.body));
+  void handleHttpRequest(Request request) {
+      var packedRequests = packedRequestsFromJson(JSON.decode(request.body));
 
       _splitAndProcessRequests(packedRequests).then((response) {
-        httpRequest.response
+        request.response
           ..headers.contentType = ContentType.parse("application/json")
           ..statusCode = HttpStatus.OK
           ..write(JSON.encode(response))
           ..close();
       }).catchError((e){
-        httpRequest.response
+        request.response
           ..headers.contentType = ContentType.parse("application/json")
           ..statusCode = HttpStatus.BAD_REQUEST
           ..close();
       },test: (e) => e is UnknownHandlerException);
-    });
   }
 
   /**
@@ -131,7 +121,6 @@ class MultiRequestHandler {
              requests,
              (PackedRequest request) =>
                  _handleClientRequest(request.clientRequest).then((response){
-                   //print("RESPONSE: ${response}");
                    responses.add({'id': request.id, 'response': response});
                  })
            ).then((_)=>new Future.value(responses));
