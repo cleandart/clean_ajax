@@ -31,6 +31,41 @@ abstract class Connection {
    */
   final Queue<Map> _requestQueue = new Queue<Map>();
 
+  /**
+   * Maps [Request] names to their future responses.
+   */
+  final Map<int, Completer> _responseMap = new Map<int, Completer>();
+
+  /**
+   * Counts sent requests. Serves as unique ID for new requests.
+   */
+  int requestCount = 0;
+
+  List<PackedRequest> _prepareRequest() {
+    var request_list = [];
+    while (!_requestQueue.isEmpty) {
+      var map = _requestQueue.removeFirst();
+      var clientRequest = map['createRequest'](); // create the request
+      request_list.add(new PackedRequest(requestCount, clientRequest));
+      _responseMap[requestCount++] = map['completer'];
+    }
+    return request_list;
+  }
+
+  void _handleResponse(List responses) {
+    for (var responseMap in responses) {
+      var id = responseMap['id'];
+      var response = responseMap['response'];
+      if (_responseMap.containsKey(id)) {
+        _responseMap[id].complete(response);
+        _responseMap.remove(id);
+      }
+    }
+    _responseMap.forEach((id, request) {
+      throw new Exception("Request $id was not answered!");
+    });
+  }
+
   void performRequest();
 
   /**
@@ -56,7 +91,7 @@ class HttpConnection extends Connection {
    * RequestFactory is a function like HttpRequest.request() that returns
    * [Future<HttpRequest>].
    */
-  final HttpRequestFactory _factory;
+  final HttpRequestFactory _sendHttpRequest;
 
   /**
    * The URL where to perform requests.
@@ -81,18 +116,23 @@ class HttpConnection extends Connection {
   /**
    * Creates a new [Connection] with specified [HttpRequestFactory]
    */
-  HttpConnection.config(this._factory, this._url, this._delayBetweenRequests);
+  HttpConnection.config(this._sendHttpRequest, this._url, this._delayBetweenRequests);
 
-  /**
-   * Maps [Request] names to their future responses.
-   */
-  final Map<int, Completer> _responseMap = new Map<int, Completer>();
+  bool _shouldSendHttpRequest() {
+    return !_isRunning &&
+        _requestQueue.isNotEmpty &&
+        new DateTime.now().difference(_lastResponseTime) >= _delayBetweenRequests;
+  }
 
-  /**
-   * Counts sent requests. Serves as unique ID for new requests.
-   */
-  int requestCount = 0;
+  void _openRequest() {
+    _isRunning = true;
+  }
 
+  void _closeRequest() {
+    _isRunning = false;
+    _lastResponseTime = new DateTime.now();
+    new Timer(_delayBetweenRequests, performRequest);
+  }
   /**
    * Begins performing HttpRequest. Is not launched if another request is
    * already running or the request Queue is empty. Sets [_isRunning] as true
@@ -100,37 +140,19 @@ class HttpConnection extends Connection {
    * after this one.
    */
   void performRequest() {
-    if (_isRunning || _requestQueue.isEmpty ||
-        new DateTime.now().difference(_lastResponseTime) < _delayBetweenRequests) {
+    if (!_shouldSendHttpRequest()) {
       return;
     }
 
-    _isRunning = true;
-    var request_list = new List();
-    while (!_requestQueue.isEmpty) {
-      var map = _requestQueue.removeFirst();
-      var clientRequest = map['createRequest'](); // create the request
-      request_list.add(new PackedRequest(requestCount, clientRequest));
-      _responseMap[requestCount++] = map['completer'];
-    }
+    _openRequest();
 
-    _factory(_url, method: 'POST',
-      sendData: JSON.encode(request_list)).then((xhr) {
-        var list = JSON.decode(xhr.responseText);
-        for (var responseMap in list) {
-          var id = responseMap['id'];
-          var response = responseMap['response'];
-          if (_responseMap.containsKey(id)) {
-            _responseMap[id].complete(response);
-            _responseMap.remove(id);
-          }
-        }
-        _responseMap.forEach((id, request) {
-          throw new Exception("Request $id was not answered!");
-        });
-        _isRunning = false;
-        _lastResponseTime = new DateTime.now();
-        new Timer(_delayBetweenRequests, performRequest);
+    _sendHttpRequest(
+        _url,
+        method: 'POST',
+        sendData: JSON.encode(_prepareRequest())
+    ).then((xhr) {
+        _handleResponse(JSON.decode(xhr.responseText));
+        _closeRequest();
     });
   }
 }
