@@ -16,12 +16,21 @@ import "dart:convert";
 import 'package:clean_ajax/common.dart';
 export 'package:clean_ajax/common.dart' show ClientRequest;
 
-
+typedef ClientRequest CreateRequest();
 
 /**
  * Abstract representation of connection to server.
  */
-abstract class Connection {
+class Connection {
+
+  final Transport _transport;
+
+  /**
+   * Creates a new [Connection].
+   */
+  Connection.config(this._transport) {
+    this._transport.setHandlers(_prepareRequest, _handleResponse);
+  }
 
   /**
    * Queue of unprepared [ClientRequest]s.
@@ -66,8 +75,6 @@ abstract class Connection {
     });
   }
 
-  void performRequest();
-
   /**
    * Puts the Unprepared Request to queue.
    * Returns Future object that completes when the request receives response.
@@ -75,23 +82,29 @@ abstract class Connection {
   Future sendRequest(CreateRequest createRequest) {
     var completer = new Completer();
     _requestQueue.add({'createRequest': createRequest, 'completer': completer});
-    performRequest();
+    _transport.markDirty();
     return completer.future;
   }
 }
 
-typedef HttpRequestFactory(String url, {String method, bool withCredentials,
-  String responseType, String mimeType, Map<String, String> requestHeaders,
-  sendData, void onProgress(e)});
+abstract class Transport {
+  dynamic _prepareRequest;
+  dynamic _handleResponse;
 
-typedef ClientRequest CreateRequest();
+  setHandlers(prepareRequest, handleResponse) {
+    _prepareRequest = prepareRequest;
+    _handleResponse = handleResponse;
+  }
 
-class HttpConnection extends Connection {
+  void markDirty();
+}
+
+class HttpTransport extends Transport {
   /**
    * RequestFactory is a function like HttpRequest.request() that returns
    * [Future<HttpRequest>].
    */
-  final HttpRequestFactory _sendHttpRequest;
+  final _sendHttpRequest;
 
   /**
    * The URL where to perform requests.
@@ -113,19 +126,24 @@ class HttpConnection extends Connection {
    */
   Duration _delayBetweenRequests;
 
-  /**
-   * Creates a new [Connection] with specified [HttpRequestFactory]
-   */
-  HttpConnection.config(this._sendHttpRequest, this._url, this._delayBetweenRequests);
+  bool _isDirty;
+
+  HttpTransport(this._sendHttpRequest, this._url, this._delayBetweenRequests);
+
+  markDirty() {
+    _isDirty = true;
+    performRequest();
+  }
 
   bool _shouldSendHttpRequest() {
     return !_isRunning &&
-        _requestQueue.isNotEmpty &&
+        _isDirty &&
         new DateTime.now().difference(_lastResponseTime) >= _delayBetweenRequests;
   }
 
   void _openRequest() {
     _isRunning = true;
+    _isDirty = false;
   }
 
   void _closeRequest() {
@@ -133,6 +151,7 @@ class HttpConnection extends Connection {
     _lastResponseTime = new DateTime.now();
     new Timer(_delayBetweenRequests, performRequest);
   }
+
   /**
    * Begins performing HttpRequest. Is not launched if another request is
    * already running or the request Queue is empty. Sets [_isRunning] as true

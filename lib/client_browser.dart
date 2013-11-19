@@ -9,14 +9,10 @@
 library clean_ajax.client;
 
 import "dart:html";
-import 'package:clean_ajax/client.dart' as Client;
-export 'package:clean_ajax/client.dart' show ClientRequest, HttpRequestFactory;
+import 'package:clean_ajax/client.dart';
+export 'package:clean_ajax/client.dart';
 
-
-class HttpConnection extends Client.HttpConnection
-{
-  /**
-   * Creates a new [Connection] with default [HttpRequestFactory]
-   */
-  HttpConnection(url, Duration delayBetweenRequests) : super.config(HttpRequest.request, url, delayBetweenRequests) ;
-}
+Connection createHttpConnection(url, Duration delayBetweenRequests) =>
+  new Connection.config(
+      new HttpTransport(HttpRequest.request, url, delayBetweenRequests)
+  );

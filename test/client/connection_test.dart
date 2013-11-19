@@ -6,7 +6,7 @@ library connection_test;
 
 import 'package:unittest/unittest.dart';
 import 'package:unittest/mock.dart';
-//import 'package:unittest/html_config.dart';
+import 'package:clean_ajax/common.dart';
 import 'package:clean_ajax/client.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -40,109 +40,118 @@ class MockRemoteHttpServer extends Mock
 
 }
 
+class TransportMock extends Mock implements Transport {
+  Function prepareRequest;
+  Function handleResponse;
+
+  setHandlers(prepareRequest, handleResponse) {
+    this.prepareRequest = prepareRequest;
+    this.handleResponse = handleResponse;
+  }
+}
+
+class CRMock extends Mock implements ClientRequest {}
+
 void main() {
-  group('Server', () {
+  group('Connection', () {
 
-    HttpConnection connection;
-    MockRemoteHttpServer remoteServer;
-
-    setUp(() {
-      remoteServer = new MockRemoteHttpServer();
-      connection = new HttpConnection.config(remoteServer.sendRequest, 'localhost', new Duration(milliseconds:100));
-    });
-
-    test('Single Request receives a response', () {
+    test('notify transport on sendRequest.', () {
       // given
-      remoteServer.setResponse('dummyType', 'dummyArgs','dummyResponse');
+      var transport = new TransportMock();
+      var connection = new Connection.config(transport);
 
       // when
-      var response = connection.sendRequest( () => new ClientRequest('dummyType', 'dummyArgs'));
-
-      //then
-      expect(response, completion(equals('dummyResponse')));
-    });
-
-    test('Arguments are passed to server correctly', () {
-      // given
-      remoteServer.delay = new Duration(seconds: 1);
-      remoteServer.setResponse('dummyType', 'dummyArgs1', 'testvalue3');
-      remoteServer.setResponse('dummyType', 'dummyArgs2', 'testvalue4');
-
-      // when
-      var res1 = connection.sendRequest( () => new ClientRequest('dummyType', 'dummyArgs1'));
-      var res2 = connection.sendRequest( () => new ClientRequest('dummyType', 'dummyArgs2'));
+      connection.sendRequest(null);
 
       // then
-      expect(res1,completion(equals('testvalue3')));
-      expect(res2,completion(equals('testvalue4')));
+      transport.getLogs(callsTo('markDirty')).verify(happenedOnce);
     });
 
-    test('Response is JSON decoded on arrival', () {
+    test('send requests in order.', () {
       // given
-      remoteServer.setResponse('dummyType', 'dummyArgs', ['response1', 'response2']);
+      var transport = new TransportMock();
+      var connection = new Connection.config(transport);
+      var requests = [new CRMock(), new CRMock(), new CRMock()];
 
       // when
-      var res = connection.sendRequest( () => new ClientRequest('dummyType', 'dummyArgs'));
+      for (var request in requests) {
+        connection.sendRequest(() => request);
+      }
 
       // then
-      expect(res,completion(equals(['response1', 'response2'])));
+      var packedRequests = transport.prepareRequest();
+      for (var i = 0; i < packedRequests.length; i++) {
+        expect(packedRequests[i].clientRequest, equals(requests[i]));
+      }
     });
 
-
-    test('Multiple Requests with same name can receive different response', () {
+    test('futures are completed with proper response.', () {
       // given
-      remoteServer.setResponse('dummyType', 'dummyArgs1', 'response2');
-      remoteServer.setResponse('dummyType', 'dummyArgs2', 'response3');
+      var transport = new TransportMock();
+      var connection = new Connection.config(transport);
+      var requests = [new CRMock(), new CRMock(), new CRMock()];
+      var responses = ["response1", "response2", "response3"];
 
-      // when
-      var res1 = connection.sendRequest( () => new ClientRequest('dummyType', 'dummyArgs1'));
-      var res2 = connection.sendRequest( () => new ClientRequest('dummyType', 'dummyArgs2'));
+      var futures = [];
+      for (var request in requests) {
+        futures.add(connection.sendRequest(() => request));
+      }
 
-      // then
-      expect(res1, completion(equals('response2')));
-      expect(res2, completion(equals('response3')));
-    });
+      var packedRequests = transport.prepareRequest();
 
-    test('Multiple Requests can be sent in one request.', () {
-      // given
-      remoteServer.delay = new Duration(seconds: 1);
-      remoteServer.setResponse('dummyType', 'dummyArgs1', 'response1');
-      remoteServer.setResponse('dummyType', 'dummyArgs2', 'response2');
-      remoteServer.setResponse('dummyType', 'dummyArgs3', 'response3');
-
-      List logOfActions = new List();
-      logAction(id) {
-        print("Action $id");
-        logOfActions.add(id);
+      var packedResponses = [];
+      for (var i = 0; i < packedRequests.length; i++) {
+        packedResponses.add(
+            {'id': packedRequests[i].id, 'response': responses[i]});
       }
 
       // when
-      var res1 = connection.sendRequest( () {
-        logAction('req1');
-        return new ClientRequest('dummyType', 'dummyArgs1');
-      });
-      var res2 = connection.sendRequest( () {
-        logAction('req2');
-        return new ClientRequest('dummyType', 'dummyArgs2');
-      });
-      var res3 = connection.sendRequest( () {
-        logAction('req3');
-        return new ClientRequest('dummyType', 'dummyArgs3');
-      });
+      transport.handleResponse(packedResponses);
 
       // then
-      var procesedRes1 = res1.then((_) => logAction('res1'));
-      var procesedRes2 = res2.then((_) => logAction('res2'));
-      var procesedRes3 = res3.then((_) => logAction('res3'));
-
-      expect(res1,completion(equals('response1')));
-      expect(res2,completion(equals('response2')));
-      expect(res3,completion(equals('response3')));
-
-      var finishedActions = Future.wait([procesedRes1,procesedRes2,procesedRes3])
-          .then((_) => logOfActions);
-      expect(finishedActions,completion(equals(['req1', 'res1','req2', 'req3', 'res2', 'res3'])));
+      for (var i = 0; i < futures.length; i++) {
+        futures[i].then(expectAsync1((response) {
+          expect(response, equals(responses[i]));
+        }));
+      }
     });
 
+  });
+
+
+  group('HttpTransport', () {
+    test('send packedRequests as JSON.', () {
+      // given
+      var response = [{"id": 1}, {"id": 2}];
+      var httpResponse = new Mock()
+          ..when(callsTo('get responseText')).alwaysReturn(JSON.encode(response));
+
+      var packedRequests = [{"packedId": 1}, {"packedId": 2}];
+      var sendHttpRequest = new Mock()
+          ..when(callsTo('call')).alwaysReturn(new Future.value(httpResponse));
+
+      var transport = new HttpTransport(
+          (url, {method, sendData}) => sendHttpRequest(url, method, sendData),
+          "url",
+          new Duration()
+      );
+
+      transport.setHandlers(() => packedRequests,
+
+          // then
+          expectAsync1((receivedResponse) {
+            expect(receivedResponse, equals(response));
+          }
+
+      ));
+
+      // when
+      transport.markDirty();
+
+      // then
+      sendHttpRequest.getLogs(
+          callsTo('call', 'url', 'POST', JSON.encode(packedRequests)))
+            .verify(happenedOnce);
+    });
   });
 }
