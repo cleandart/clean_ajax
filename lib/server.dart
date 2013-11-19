@@ -83,7 +83,6 @@ class MultiRequestHandler {
   ClientRequestHandler _defaultExecutor = null;
 
 
-//  MultiRequestHandler();
 
   /**
    * Process [HttpRequest] extract from it [HttpBody]
@@ -91,7 +90,6 @@ class MultiRequestHandler {
    * [HttpResponse]
    */
   void handleHttpRequest(Request request) {
-    //httpBodyExtractor(httpRequest).then((HttpBody body) {
       var packedRequests = packedRequestsFromJson(JSON.decode(request.body));
 
       _splitAndProcessRequests(packedRequests).then((response) {
@@ -106,7 +104,6 @@ class MultiRequestHandler {
           ..statusCode = HttpStatus.BAD_REQUEST
           ..close();
       },test: (e) => e is UnknownHandlerException);
-//    });
   }
 
   /**
@@ -124,7 +121,6 @@ class MultiRequestHandler {
              requests,
              (PackedRequest request) =>
                  _handleClientRequest(request.clientRequest).then((response){
-                   //print("RESPONSE: ${response}");
                    responses.add({'id': request.id, 'response': response});
                  })
            ).then((_)=>new Future.value(responses));
