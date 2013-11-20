@@ -6,13 +6,13 @@
  * A library for server-client communication and interaction
  * Client(Browser) side
  */
-library clean_ajax.client_browser;
+library clean_ajax.client_backend;
 
-import "dart:html";
 import 'package:clean_ajax/client.dart';
+import 'package:clean_ajax/server.dart';
 export 'package:clean_ajax/client.dart';
 
-Connection createHttpConnection(url, Duration delayBetweenRequests) =>
+Connection createLoopBackConnection(MultiRequestHandler requestHandler) =>
   new Connection.config(
-      new HttpTransport(HttpRequest.request, url, delayBetweenRequests)
+      new LoopBackTransport(requestHandler.handleLoopBackRequest)
   );

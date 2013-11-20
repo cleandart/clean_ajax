@@ -5,6 +5,8 @@
 import 'package:clean_backend/clean_backend.dart';
 import 'package:clean_ajax/server.dart';
 import 'dart:async';
+import 'package:clean_ajax/client.dart';
+import 'package:clean_ajax/client_backend.dart';
 
 // Don't run example_client.dart nor index.html instead run example_server.dart and go
 // in dartium to address 0.0.0.0:8080
@@ -16,6 +18,15 @@ void main() {
   Backend backend = new Backend();
   MultiRequestHandler requestHandler = new MultiRequestHandler();
   requestHandler.registerDefaultHandler(simpleClientRequestHandler);
+
+  Connection connection = createLoopBackConnection(requestHandler);
+
+  for (int i=0; i<10; i++){
+    connection.sendRequest(()=>new ClientRequest('dummyType','request$i')).then(
+        (response) => print(response)
+    );
+  }
+
 
   backend.listen().then((_) {
     backend.addDefaultHttpHeader('Access-Control-Allow-Origin','*');
