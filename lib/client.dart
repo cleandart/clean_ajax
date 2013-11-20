@@ -175,3 +175,63 @@ class HttpTransport extends Transport {
     });
   }
 }
+
+  class LoopBackTransport extends Transport {
+    /**
+     * RequestFactory is a function like LoopBackRequest.request() that returns
+     * [Future<LoopBackRequest>].
+     */
+    final _sendLoopBackRequest;
+
+    /**
+     * Indicates whether a [LoopBackRequest] is currently on the way.
+     */
+    bool _isRunning = false;
+
+
+
+    bool _isDirty;
+
+    LoopBackTransport(this._sendLoopBackRequest);
+
+    markDirty() {
+      _isDirty = true;
+      performRequest();
+    }
+
+    bool _shouldSendLoopBackRequest() {
+      return !_isRunning &&
+          _isDirty;
+    }
+
+    void _openRequest() {
+      _isRunning = true;
+      _isDirty = false;
+    }
+
+    void _closeRequest() {
+      _isRunning = false;
+      performRequest();
+    }
+
+    /**
+     * Begins performing LoopBackRequest. Is not launched if another request is
+     * already running or the request Queue is empty. Sets [_isRunning] as true
+     * for the time this request is running and hooks up another request
+     * after this one.
+     */
+    void performRequest() {
+      if (!_shouldSendLoopBackRequest()) {
+        return;
+      }
+
+      _openRequest();
+
+      _sendLoopBackRequest(
+        _prepareRequest()
+      ).then((response) {
+        _handleResponse(response);
+        _closeRequest();
+    });
+  }
+}

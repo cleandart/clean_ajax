@@ -154,4 +154,36 @@ void main() {
             .verify(happenedOnce);
     });
   });
+
+  group('LoopBackTransport', () {
+    test('send packedRequests.', () {
+      // given
+      var response = [{"id": 1}, {"id": 2}];
+
+      var packedRequests = [{"packedId": 1}, {"packedId": 2}];
+      var sendLoopBackRequest = new Mock()
+          ..when(callsTo('call')).alwaysReturn(new Future.value(response));
+
+      var transport = new LoopBackTransport(
+          (List<PackedRequest> requests) => sendLoopBackRequest(requests)
+      );
+
+      transport.setHandlers(() => packedRequests,
+
+          // then
+          expectAsync1((receivedResponse) {
+            expect(receivedResponse, equals(response));
+          }
+
+      ));
+
+      // when
+      transport.markDirty();
+
+      // then
+      sendLoopBackRequest.getLogs(
+          callsTo('call', packedRequests))
+            .verify(happenedOnce);
+    });
+  });
 }
