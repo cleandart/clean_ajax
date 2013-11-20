@@ -21,7 +21,7 @@ void main() {
 
   Connection connection = createLoopBackConnection(requestHandler);
 
-  for (int i=0; i<10; i++){
+  for (int i=0; i<10; i++) {
     connection.sendRequest(()=>new ClientRequest('dummyType','request$i')).then(
         (response) => print(response)
     );

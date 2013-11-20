@@ -215,7 +215,7 @@ class HttpTransport extends Transport {
     }
 
     /**
-     * Begins performing HttpRequest. Is not launched if another request is
+     * Begins performing LoopBackRequest. Is not launched if another request is
      * already running or the request Queue is empty. Sets [_isRunning] as true
      * for the time this request is running and hooks up another request
      * after this one.
