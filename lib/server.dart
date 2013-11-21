@@ -90,20 +90,24 @@ class MultiRequestHandler {
    * [HttpResponse]
    */
   void handleHttpRequest(Request request) {
-      var packedRequests = packedRequestsFromJson(JSON.decode(request.body));
-
-      _splitAndProcessRequests(packedRequests).then((response) {
-        request.response
-          ..headers.contentType = ContentType.parse("application/json")
-          ..statusCode = HttpStatus.OK
-          ..write(JSON.encode(response))
-          ..close();
-      }).catchError((e){
-        request.response
-          ..headers.contentType = ContentType.parse("application/json")
-          ..statusCode = HttpStatus.BAD_REQUEST
-          ..close();
-      },test: (e) => e is UnknownHandlerException);
+    List<PackedRequest> packedRequests =
+        packedRequestsFromJson(JSON.decode(request.body));
+    // decorate individual clientRequests with authenticatedUserId property
+    for(PackedRequest packedReq in packedRequests) {
+      packedReq.clientRequest.authenticatedUserId = request.authenticatedUserId;
+    }
+    _splitAndProcessRequests(packedRequests).then((response) {
+      request.response
+        ..headers.contentType = ContentType.parse("application/json")
+        ..statusCode = HttpStatus.OK
+        ..write(JSON.encode(response))
+        ..close();
+    }).catchError((e){
+      request.response
+        ..headers.contentType = ContentType.parse("application/json")
+        ..statusCode = HttpStatus.BAD_REQUEST
+        ..close();
+    },test: (e) => e is UnknownHandlerException);
   }
 
   Future<List> handleLoopBackRequest(List<PackedRequest> requests) {
