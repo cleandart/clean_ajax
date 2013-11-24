@@ -168,6 +168,7 @@ class HttpTransport extends Transport {
     _sendHttpRequest(
         _url,
         method: 'POST',
+        mimeType: 'application/json',
         sendData: JSON.encode(_prepareRequest())
     ).then((xhr) {
         _handleResponse(JSON.decode(xhr.responseText));
