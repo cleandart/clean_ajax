@@ -149,7 +149,7 @@ class HttpTransport extends Transport {
   void _closeRequest() {
     _isRunning = false;
     _lastResponseTime = new DateTime.now();
-    new Timer(_delayBetweenRequests, performRequest);
+    new Timer(_delayBetweenRequests + _delayBetweenRequests, performRequest);
   }
 
   /**
