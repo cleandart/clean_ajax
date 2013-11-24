@@ -92,7 +92,8 @@ class MultiRequestHandler {
   void handleHttpRequest(Request request) {
     print(request.body);
     List<PackedRequest> packedRequests =
-        packedRequestsFromJson(JSON.decode(request.body));
+//        packedRequestsFromJson(JSON.decode(request.body));
+        packedRequestsFromJson(request.body);
     // decorate individual clientRequests with authenticatedUserId property
     for(PackedRequest packedReq in packedRequests) {
       packedReq.clientRequest.authenticatedUserId = request.authenticatedUserId;
