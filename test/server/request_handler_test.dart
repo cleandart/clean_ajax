@@ -22,7 +22,7 @@ class MockHttpRequest extends Mock implements HttpRequest {
   Mock httpResponse = new MockHttpResponse();
   Mock httpHeaders = new MockHttpHeaders();
   MockHttpRequest(String body) {
-    httpBody.when(callsTo('get body')).alwaysReturn(body);
+    httpBody.when(callsTo('get body')).alwaysReturn(JSON.decode(body));
     when(callsTo('get response')).alwaysReturn(httpResponse);
     httpResponse.when(callsTo('get headers')).alwaysReturn(httpHeaders);
   }
