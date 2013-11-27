@@ -127,6 +127,11 @@ class HttpTransport extends Transport {
    */
   bool _isDirty;
 
+  /**
+   * If set to true, this instance stops sending http requests.
+   */
+  bool _disposed = false;
+
   HttpTransport(this._sendHttpRequest, this._url, this._delayBetweenRequests);
 
   /**
@@ -140,8 +145,16 @@ class HttpTransport extends Transport {
     _performRequest();
   }
 
+  /**
+   * Marks timer as disposed, which prevents him from future sending of http
+   * requests.
+   */
+  dispose() {
+    _disposed = true;
+  }
+
   bool _shouldSendHttpRequest() {
-    return !_isRunning && _isDirty;
+    return !_isRunning && _isDirty && !_disposed;
   }
 
   void _openRequest() {
