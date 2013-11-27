@@ -47,7 +47,8 @@ void main() {
       var statusCode = request.response
           .getLogs(callsTo('set statusCode')).last.args.first;
 
-      expect(contentType.toString(), equals(ContentType.parse("application/json").toString()));
+      expect(contentType.toString(),
+          equals(ContentType.parse("application/json").toString()));
       expect(statusCode, expectedHttpStatusCode);
     }
 
@@ -59,8 +60,10 @@ void main() {
 
     test('No ClientRequestHandler registered (T01).', () {
       //given
-      var httpRequest = new MockHttpRequest(JSON.encode([new PackedRequest(47, new ClientRequest('test1',15))]));
-      Request request = new Request('json', httpRequest.httpBody.body, httpRequest.response, httpRequest.headers, httpRequest);
+      var httpRequest = new MockHttpRequest(JSON.encode(
+          [new PackedRequest(47, new ClientRequest('test1',15))]));
+      Request request = new Request('json', httpRequest.httpBody.body,
+          httpRequest.response, httpRequest.headers, httpRequest, {});
       //when
       requestHandler.handleHttpRequest(request);
 
@@ -75,8 +78,10 @@ void main() {
         //given
         Future mockExecutor(request) => new Future.value('dummyResponse');
         requestHandler.registerHandler('dummyType', mockExecutor);
-        var httpRequest = new MockHttpRequest(JSON.encode([new PackedRequest(47, new ClientRequest('dummyType',15))]));
-        Request request = new Request('json', httpRequest.httpBody.body, httpRequest.response, httpRequest.headers, httpRequest);
+        var httpRequest = new MockHttpRequest(JSON.encode(
+            [new PackedRequest(47, new ClientRequest('dummyType',15))]));
+        Request request = new Request('json', httpRequest.httpBody.body,
+            httpRequest.response, httpRequest.headers, httpRequest, {});
 
         //when
         requestHandler.handleHttpRequest(request);
@@ -84,7 +89,8 @@ void main() {
         //then
         var closeCalled = expectAsync0(() {
           verifyCorrectRequestMetaData(request, HttpStatus.OK);
-          verifyCorrectRequestContent(request,'[{"id":47,"response":"dummyResponse"}]');
+          verifyCorrectRequestContent(request,
+              '[{"id":47,"response":"dummyResponse"}]');
         });
         request.response.when(callsTo('close')).alwaysCall(closeCalled);
     });
@@ -93,8 +99,10 @@ void main() {
         //given
         Future mockExecutor(request) => new Future.value('dummyResponse');
         requestHandler.registerDefaultHandler(mockExecutor);
-        var httpRequest = new MockHttpRequest(JSON.encode([new PackedRequest(47, new ClientRequest('dummyType',15))]));
-        Request request = new Request('json', httpRequest.httpBody.body, httpRequest.response, httpRequest.headers, httpRequest);
+        var httpRequest = new MockHttpRequest(JSON.encode(
+            [new PackedRequest(47, new ClientRequest('dummyType',15))]));
+        Request request = new Request('json', httpRequest.httpBody.body,
+            httpRequest.response, httpRequest.headers, httpRequest, {});
 
         //when
         requestHandler.handleHttpRequest(request);
@@ -102,12 +110,14 @@ void main() {
         //then
         var closeCalled = expectAsync0(() {
           verifyCorrectRequestMetaData(request, HttpStatus.OK);
-          verifyCorrectRequestContent(request,'[{"id":47,"response":"dummyResponse"}]');
+          verifyCorrectRequestContent(request,
+              '[{"id":47,"response":"dummyResponse"}]');
         });
         request.response.when(callsTo('close')).alwaysCall(closeCalled);
     });
 
-    test('ClientRequestHandler execution with more packed requests in order (TO4).', () {
+    test('ClientRequestHandler execution with more packed requests in order '
+        '(TO4).', () {
         //given
         List<String> orderOfExecution = new List<String>();
 
@@ -118,10 +128,14 @@ void main() {
         requestHandler.registerDefaultHandler(mockExecutor);
 
         var httpRequest = new MockHttpRequest(
-            JSON.encode([new PackedRequest(1, new ClientRequest('dummyType1','firstRequest')),
-                         new PackedRequest(2, new ClientRequest('dummyType2','secondRequest'))
-                        ]));
-        Request request = new Request('json', httpRequest.httpBody.body, httpRequest.response, httpRequest.headers, httpRequest);
+            JSON.encode(
+                [new PackedRequest(1, new ClientRequest('dummyType1',
+                    'firstRequest')),
+                 new PackedRequest(2, new ClientRequest('dummyType2',
+                     'secondRequest'))
+                ]));
+        Request request = new Request('json', httpRequest.httpBody.body,
+            httpRequest.response, httpRequest.headers, httpRequest, {});
 
         //when
         requestHandler.handleHttpRequest(request);
@@ -129,24 +143,30 @@ void main() {
         //then
         var closeCalled = expectAsync0(() {
           verifyCorrectRequestMetaData(request, HttpStatus.OK);
-          verifyCorrectRequestContent(request,'[{"id":1,"response":"dummyType1"},{"id":2,"response":"dummyType2"}]');
-          expect(orderOfExecution,equals(['firstRequest','secondRequest']));
+          verifyCorrectRequestContent(request,
+              '[{"id":1,"response":"dummyType1"},'
+              '{"id":2,"response":"dummyType2"}]');
+          expect(orderOfExecution,equals(['firstRequest', 'secondRequest']));
         });
         request.response.when(callsTo('close')).alwaysCall(closeCalled);
     });
 
     test('Specific and default ClientRequestHandler execution (TO5).', () {
         //given
-        Future mockExecutorSpecific(request) => new Future.delayed(new Duration(seconds: 2),()=>'specificResponse');
-        Future mockExecutorDefault(request) => new Future.value('defaultResponse');
+        Future mockExecutorSpecific(request) =>
+            new Future.delayed(new Duration(seconds: 2),()=>'specificResponse');
+        Future mockExecutorDefault(request) =>
+            new Future.value('defaultResponse');
         requestHandler.registerHandler('specificType',mockExecutorSpecific);
         requestHandler.registerDefaultHandler(mockExecutorDefault);
 
         var httpRequest = new MockHttpRequest(
-            JSON.encode([new PackedRequest(1, new ClientRequest('specificType',10)),
-                         new PackedRequest(2, new ClientRequest('dummyType',12))
-                        ]));
-        Request request = new Request('json', httpRequest.httpBody.body, httpRequest.response, httpRequest.headers, httpRequest);
+            JSON.encode(
+                [new PackedRequest(1, new ClientRequest('specificType', 10)),
+                 new PackedRequest(2, new ClientRequest('dummyType', 12))
+                ]));
+        Request request = new Request('json', httpRequest.httpBody.body,
+            httpRequest.response, httpRequest.headers, httpRequest, {});
 
         //when
         requestHandler.handleHttpRequest(request);
@@ -154,7 +174,9 @@ void main() {
         //then
         var closeCalled = expectAsync0(() {
           verifyCorrectRequestMetaData(request, HttpStatus.OK);
-          verifyCorrectRequestContent(request,'[{"id":1,"response":"specificResponse"},{"id":2,"response":"defaultResponse"}]');
+          verifyCorrectRequestContent(request,
+              '[{"id":1,"response":"specificResponse"},'
+              '{"id":2,"response":"defaultResponse"}]');
         });
         request.response.when(callsTo('close')).alwaysCall(closeCalled);
     });
