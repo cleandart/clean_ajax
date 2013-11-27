@@ -91,7 +91,8 @@ class MultiRequestHandler {
    */
   void handleHttpRequest(Request request) {
     if (request.type != 'json') {
-      throw new Exception('Request type is $request.type, json was expected!');
+      throw new Exception('Request type is ${request.type}, '
+                          'json was expected!');
     }
     List<PackedRequest> packedRequests =
 //        packedRequestsFromJson(JSON.decode(request.body));

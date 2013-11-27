@@ -60,7 +60,7 @@ void main() {
     test('No ClientRequestHandler registered (T01).', () {
       //given
       var httpRequest = new MockHttpRequest(JSON.encode([new PackedRequest(47, new ClientRequest('test1',15))]));
-      Request request = new Request('type', httpRequest.httpBody.body, httpRequest.response, httpRequest.headers, httpRequest);
+      Request request = new Request('json', httpRequest.httpBody.body, httpRequest.response, httpRequest.headers, httpRequest);
       //when
       requestHandler.handleHttpRequest(request);
 
@@ -76,7 +76,7 @@ void main() {
         Future mockExecutor(request) => new Future.value('dummyResponse');
         requestHandler.registerHandler('dummyType', mockExecutor);
         var httpRequest = new MockHttpRequest(JSON.encode([new PackedRequest(47, new ClientRequest('dummyType',15))]));
-        Request request = new Request('type', httpRequest.httpBody.body, httpRequest.response, httpRequest.headers, httpRequest);
+        Request request = new Request('json', httpRequest.httpBody.body, httpRequest.response, httpRequest.headers, httpRequest);
 
         //when
         requestHandler.handleHttpRequest(request);
@@ -94,7 +94,7 @@ void main() {
         Future mockExecutor(request) => new Future.value('dummyResponse');
         requestHandler.registerDefaultHandler(mockExecutor);
         var httpRequest = new MockHttpRequest(JSON.encode([new PackedRequest(47, new ClientRequest('dummyType',15))]));
-        Request request = new Request('type', httpRequest.httpBody.body, httpRequest.response, httpRequest.headers, httpRequest);
+        Request request = new Request('json', httpRequest.httpBody.body, httpRequest.response, httpRequest.headers, httpRequest);
 
         //when
         requestHandler.handleHttpRequest(request);
@@ -121,7 +121,7 @@ void main() {
             JSON.encode([new PackedRequest(1, new ClientRequest('dummyType1','firstRequest')),
                          new PackedRequest(2, new ClientRequest('dummyType2','secondRequest'))
                         ]));
-        Request request = new Request('type', httpRequest.httpBody.body, httpRequest.response, httpRequest.headers, httpRequest);
+        Request request = new Request('json', httpRequest.httpBody.body, httpRequest.response, httpRequest.headers, httpRequest);
 
         //when
         requestHandler.handleHttpRequest(request);
@@ -146,7 +146,7 @@ void main() {
             JSON.encode([new PackedRequest(1, new ClientRequest('specificType',10)),
                          new PackedRequest(2, new ClientRequest('dummyType',12))
                         ]));
-        Request request = new Request('type', httpRequest.httpBody.body, httpRequest.response, httpRequest.headers, httpRequest);
+        Request request = new Request('json', httpRequest.httpBody.body, httpRequest.response, httpRequest.headers, httpRequest);
 
         //when
         requestHandler.handleHttpRequest(request);
