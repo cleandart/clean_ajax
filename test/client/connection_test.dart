@@ -131,7 +131,8 @@ void main() {
           ..when(callsTo('call')).alwaysReturn(new Future.value(httpResponse));
 
       var transport = new HttpTransport(
-          (url, {method, sendData}) => sendHttpRequest(url, method, sendData),
+          (url, {method, requestHeaders, sendData}) =>
+              sendHttpRequest(url, method, requestHeaders, sendData),
           "url",
           new Duration()
       );
@@ -150,8 +151,8 @@ void main() {
 
       // then
       sendHttpRequest.getLogs(
-          callsTo('call', 'url', 'POST', JSON.encode(packedRequests)))
-            .verify(happenedOnce);
+          callsTo('call', 'url', 'POST', {'Content-Type': 'application/json'},
+                  JSON.encode(packedRequests))).verify(happenedOnce);
     });
   });
 
