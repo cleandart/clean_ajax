@@ -134,7 +134,7 @@ void main() {
           (url, {method, requestHeaders, sendData}) =>
               sendHttpRequest(url, method, requestHeaders, sendData),
           "url",
-          new Duration()
+          new Duration(milliseconds: 1)
       );
 
       transport.setHandlers(() => packedRequests,
@@ -148,11 +148,15 @@ void main() {
 
       // when
       transport.markDirty();
-
+      var wait = expectAsync0(() => null);
+      
       // then
-      sendHttpRequest.getLogs(
-          callsTo('call', 'url', 'POST', {'Content-Type': 'application/json'},
-                  JSON.encode(packedRequests))).verify(happenedOnce);
+      new Future.delayed(new Duration(), () {
+        wait();
+        sendHttpRequest.getLogs(
+            callsTo('call', 'url', 'POST', {'Content-Type': 'application/json'},
+                    JSON.encode(packedRequests))).verify(happenedOnce);
+      });
     });
   });
 
@@ -187,4 +191,47 @@ void main() {
             .verify(happenedOnce);
     });
   });
+  
+  test('Requests are sent strictly periodicaly in HttpTransport.', () {
+/// given
+    var response = [{"id": 1}, {"id": 2}];
+    var httpResponse = new Mock()
+    ..when(callsTo('get responseText')).alwaysReturn(JSON.encode(response));
+
+    var packedRequests = [{"packedId": 1}, {"packedId": 2}];
+    var sendHttpRequest = new Mock()
+    ..when(callsTo('call')).alwaysReturn(new Future.value(httpResponse));
+
+    var transport = new HttpTransport(
+        (url, {method, requestHeaders, sendData}) =>
+            sendHttpRequest(url, method, requestHeaders, sendData),
+            "url",
+            new Duration(milliseconds: 100)
+    );
+
+    transport.setHandlers(() => packedRequests,
+
+        // then
+        expectAsync1((receivedResponse) {
+          expect(receivedResponse, equals(response));
+        }, 
+        count: 1, max: 1
+
+    ));
+    var wait = expectAsync0(() => null);
+    // when
+    transport.markDirty();
+    new Future.delayed(new Duration(milliseconds: 10), () {
+      transport.markDirty();
+      new Future.delayed(new Duration(milliseconds:100), () {
+        wait();
+        sendHttpRequest.getLogs(
+            callsTo('call', 'url', 'POST', {'Content-Type': 'application/json'},
+                    JSON.encode(packedRequests))).verify(happenedOnce);
+      });
+    }); 
+    // then
+    
+  });
+  
 }
