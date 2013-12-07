@@ -116,6 +116,50 @@ void main() {
       }
     });
 
+    test('send periodically.', () {
+      // given
+      var transport = new TransportMock();
+      var connection = new Connection.config(transport);
+      var request = new CRMock();
+
+      // when
+      connection.sendPeriodically(() => request);
+      var packedRequests1 = transport.prepareRequest();
+      var packedRequests2 = transport.prepareRequest();
+
+      // then
+      expect(packedRequests1[0].clientRequest, equals(request));
+      expect(packedRequests2[0].clientRequest, equals(request));
+
+    });
+
+    test('receive responses from stream periodically.', () {
+      // given
+      var transport = new TransportMock();
+      var connection = new Connection.config(transport);
+      var request = new CRMock();
+      var responseStream = connection.sendPeriodically(() => request);
+
+      // when
+      var packedRequests1 = transport.prepareRequest();
+      var packedResponses = [];
+      packedResponses.add({'id': packedRequests1[0].id, 'response': 'response'});
+      transport.handleResponse(packedResponses);
+
+      var packedRequests2 = transport.prepareRequest();
+      packedResponses = [];
+      packedResponses.add({'id': packedRequests2[0].id, 'response': 'response'});
+      transport.handleResponse(packedResponses);
+
+      // then
+      var future1 = responseStream.elementAt(0).then((value) {
+        expect(value, equals('response'));
+      });
+
+      return Future.wait([future1]);
+
+    });
+
   });
 
 

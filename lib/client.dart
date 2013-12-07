@@ -40,6 +40,8 @@ class Connection {
    */
   final Queue<Map> _requestQueue = new Queue<Map>();
 
+  final Queue<Map> _periodicRequestQueue = new Queue<Map>();
+
   /**
    * Maps [Request] names to their future responses.
    */
@@ -52,6 +54,11 @@ class Connection {
 
   List<PackedRequest> _prepareRequest() {
     var request_list = [];
+    for (var request in _periodicRequestQueue) {
+      send(request['createRequest']).then((value) {
+        request['controller'].add(value);
+      });
+    }
     while (!_requestQueue.isEmpty) {
       var map = _requestQueue.removeFirst();
       var clientRequest = map['createRequest'](); // create the request
@@ -77,13 +84,24 @@ class Connection {
 
   /**
    * Puts the Unprepared Request to queue.
-   * Returns Future object that completes when the request receives response.
+   * Returns [Future] object that completes when the request receives response.
    */
   Future send(CreateRequest createRequest) {
     var completer = new Completer();
     _requestQueue.add({'createRequest': createRequest, 'completer': completer});
     _transport.markDirty();
     return completer.future;
+  }
+
+  /**
+   * Send requests periodically.
+   *
+   * Returns [Stream] that contains the responses of the sent request.
+   */
+  Stream sendPeriodically(CreateRequest createRequest) {
+    var streamController = new StreamController();
+    _periodicRequestQueue.add({'createRequest': createRequest, 'controller': streamController});
+    return streamController.stream;
   }
 }
 
