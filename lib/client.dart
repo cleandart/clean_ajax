@@ -79,7 +79,7 @@ class Connection {
    * Puts the Unprepared Request to queue.
    * Returns Future object that completes when the request receives response.
    */
-  Future sendRequest(CreateRequest createRequest) {
+  Future send(CreateRequest createRequest) {
     var completer = new Completer();
     _requestQueue.add({'createRequest': createRequest, 'completer': completer});
     _transport.markDirty();
@@ -122,54 +122,36 @@ class HttpTransport extends Transport {
    */
   Duration _delayBetweenRequests;
 
-  /**
-   * _isDirty is true iff there is some request to be sent.
-   */
-  bool _isDirty;
-
-  /**
-   * If set to true, this instance stops sending http requests.
-   */
-  bool _disposed = false;
-  
   Timer _timer;
-  
+
   HttpTransport(this._sendHttpRequest, this._url, this._delayBetweenRequests);
-  
-  
+
+
   setHandlers(prepareRequest, handleResponse) {
     super.setHandlers(prepareRequest, handleResponse);
     _timer = new Timer.periodic(this._delayBetweenRequests, (_) => _performRequest());
   }
-  
+
   /**
    * Notifies [HttpTransport] instance that there are some requests to be sent
    * and attempts to send them immediately. If a HttpRequest is already running,
    * the new requests will be sent in next "iteration" (after response is
    * received + time interval _delayBetweenRequests passes).
    */
-  markDirty() {
-    _isDirty = true;
-  }
+  markDirty() {}
 
   /**
    * Marks timer as disposed, which prevents him from future sending of http
    * requests.
    */
   dispose() {
-    _disposed = true;
-    if(_timer != null) {
-      _timer.cancel();
-    }
+    if(_timer != null) _timer.cancel();
   }
 
-  bool _shouldSendHttpRequest() {
-    return !_isRunning && _isDirty && !_disposed;
-  }
+  bool _shouldSendHttpRequest() => !_isRunning;
 
   void _openRequest() {
     _isRunning = true;
-    _isDirty = false;
   }
 
   void _closeRequest() {
@@ -187,12 +169,15 @@ class HttpTransport extends Transport {
     if (!_shouldSendHttpRequest()) {
       return;
     }
+    var data = _prepareRequest();
+    if (data.isEmpty) return;
+
     _openRequest();
     _sendHttpRequest(
         _url,
         method: 'POST',
         requestHeaders: {'Content-Type': 'application/json'},
-        sendData: JSON.encode(_prepareRequest())
+        sendData: JSON.encode(data)
     ).then((xhr) {
         _handleResponse(JSON.decode(xhr.responseText));
         _closeRequest();
