@@ -13,10 +13,11 @@ import "dart:async";
 import "dart:convert";
 import 'dart:io';
 import 'package:http_server/http_server.dart';
-
-import 'package:clean_ajax/common.dart';
-export 'package:clean_ajax/common.dart' show ClientRequest, PackedRequest;
 import 'package:clean_backend/clean_backend.dart' show Request;
+
+
+import 'common.dart';
+export 'common.dart' show ClientRequest, PackedRequest;
 
 /**
  * Type of handler which can be registered in [MultiRequestHandler] for
