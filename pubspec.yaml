@@ -1,10 +1,16 @@
 name: clean_ajax
-author: VacuumLabs s.r.o.
-description: Part of the clean.dart framework.
+version: 0.1.0
+author: Clean Team <clean@vacuumlabs.com>
+description: Data transport layer for Clean framework.
+homepage: http://cleandart.github.io/clean_ajax/
+documentation: http://cleandart.github.io/clean_ajax/
+environment:
+  sdk: '>=0.8.10+6 <2.0.0'
 dependencies:
   browser: any
   clean_backend:
     git: https://github.com/cleandart/clean_backend
   http_server: any
 dev_dependencies:
+  hop: any
   unittest: any

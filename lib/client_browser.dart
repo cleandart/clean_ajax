@@ -9,8 +9,8 @@
 library clean_ajax.client_browser;
 
 import "dart:html";
-import 'package:clean_ajax/client.dart';
-export 'package:clean_ajax/client.dart';
+import 'client.dart';
+export 'client.dart';
 
 Connection createHttpConnection(url, Duration delayBetweenRequests) =>
   new Connection.config(

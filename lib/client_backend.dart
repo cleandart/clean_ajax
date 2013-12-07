@@ -8,9 +8,9 @@
  */
 library clean_ajax.client_backend;
 
-import 'package:clean_ajax/client.dart';
-import 'package:clean_ajax/server.dart';
-export 'package:clean_ajax/client.dart';
+import 'client.dart';
+import 'server.dart';
+export 'client.dart';
 
 Connection createLoopBackConnection(MultiRequestHandler requestHandler) =>
   new Connection.config(

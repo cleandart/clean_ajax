@@ -13,8 +13,8 @@ import "dart:async";
 import "dart:collection";
 import "dart:convert";
 
-import 'package:clean_ajax/common.dart';
-export 'package:clean_ajax/common.dart' show ClientRequest;
+import 'common.dart';
+export 'common.dart' show ClientRequest;
 
 typedef ClientRequest CreateRequest();
 
