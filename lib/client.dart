@@ -131,9 +131,17 @@ class HttpTransport extends Transport {
    * If set to true, this instance stops sending http requests.
    */
   bool _disposed = false;
-
+  
+  Timer _timer;
+  
   HttpTransport(this._sendHttpRequest, this._url, this._delayBetweenRequests);
-
+  
+  
+  setHandlers(prepareRequest, handleResponse) {
+    super.setHandlers(prepareRequest, handleResponse);
+    _timer = new Timer.periodic(this._delayBetweenRequests, (_) => _performRequest());
+  }
+  
   /**
    * Notifies [HttpTransport] instance that there are some requests to be sent
    * and attempts to send them immediately. If a HttpRequest is already running,
@@ -142,7 +150,6 @@ class HttpTransport extends Transport {
    */
   markDirty() {
     _isDirty = true;
-    _performRequest();
   }
 
   /**
@@ -151,6 +158,9 @@ class HttpTransport extends Transport {
    */
   dispose() {
     _disposed = true;
+    if(_timer != null) {
+      _timer.cancel();
+    }
   }
 
   bool _shouldSendHttpRequest() {
@@ -164,7 +174,6 @@ class HttpTransport extends Transport {
 
   void _closeRequest() {
     _isRunning = false;
-    new Timer(_delayBetweenRequests, _performRequest);
   }
 
   /**
