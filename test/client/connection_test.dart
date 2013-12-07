@@ -148,11 +148,9 @@ void main() {
 
       // when
       transport.markDirty();
-      var wait = expectAsync0(() => null);
       
       // then
-      new Future.delayed(new Duration(), () {
-        wait();
+      return new Future.delayed(new Duration(milliseconds: 10), () {
         sendHttpRequest.getLogs(
             callsTo('call', 'url', 'POST', {'Content-Type': 'application/json'},
                     JSON.encode(packedRequests))).verify(happenedOnce);
@@ -193,7 +191,7 @@ void main() {
   });
   
   test('Requests are sent strictly periodicaly in HttpTransport.', () {
-/// given
+  // given
     var response = [{"id": 1}, {"id": 2}];
     var httpResponse = new Mock()
     ..when(callsTo('get responseText')).alwaysReturn(JSON.encode(response));
@@ -216,15 +214,13 @@ void main() {
           expect(receivedResponse, equals(response));
         }, 
         count: 1, max: 1
-
     ));
-    var wait = expectAsync0(() => null);
+    
     // when
     transport.markDirty();
-    new Future.delayed(new Duration(milliseconds: 10), () {
+    return new Future.delayed(new Duration(milliseconds: 10), () {
       transport.markDirty();
-      new Future.delayed(new Duration(milliseconds:100), () {
-        wait();
+      return new Future.delayed(new Duration(milliseconds:100), () {
         sendHttpRequest.getLogs(
             callsTo('call', 'url', 'POST', {'Content-Type': 'application/json'},
                     JSON.encode(packedRequests))).verify(happenedOnce);
