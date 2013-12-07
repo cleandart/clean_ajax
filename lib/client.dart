@@ -117,28 +117,44 @@ class HttpTransport extends Transport {
   bool _isRunning = false;
 
   /**
-   * Indicate time when last response come
-   */
-  DateTime _lastResponseTime = new DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
-
-  /**
-   * Duration of pause between two http requests.
+   * Time interval between response to a request is received and next request
+   * is sent.
    */
   Duration _delayBetweenRequests;
 
+  /**
+   * _isDirty is true iff there is some request to be sent.
+   */
   bool _isDirty;
+
+  /**
+   * If set to true, this instance stops sending http requests.
+   */
+  bool _disposed = false;
 
   HttpTransport(this._sendHttpRequest, this._url, this._delayBetweenRequests);
 
+  /**
+   * Notifies [HttpTransport] instance that there are some requests to be sent
+   * and attempts to send them immediately. If a HttpRequest is already running,
+   * the new requests will be sent in next "iteration" (after response is
+   * received + time interval _delayBetweenRequests passes).
+   */
   markDirty() {
     _isDirty = true;
-    performRequest();
+    _performRequest();
+  }
+
+  /**
+   * Marks timer as disposed, which prevents him from future sending of http
+   * requests.
+   */
+  dispose() {
+    _disposed = true;
   }
 
   bool _shouldSendHttpRequest() {
-    return !_isRunning &&
-        _isDirty &&
-        new DateTime.now().difference(_lastResponseTime) >= _delayBetweenRequests;
+    return !_isRunning && _isDirty && !_disposed;
   }
 
   void _openRequest() {
@@ -148,29 +164,88 @@ class HttpTransport extends Transport {
 
   void _closeRequest() {
     _isRunning = false;
-    _lastResponseTime = new DateTime.now();
-    new Timer(_delayBetweenRequests, performRequest);
+    new Timer(_delayBetweenRequests, _performRequest);
   }
 
   /**
    * Begins performing HttpRequest. Is not launched if another request is
-   * already running or the request Queue is empty. Sets [_isRunning] as true
-   * for the time this request is running and hooks up another request
-   * after this one.
+   * already running ([_isRunning] is true) or the request Queue is empty,
+   * ([_isDirty] is false). Sets [_isRunning] as true for the time this request
+   * is running and hooks up another request after this one with a delay of
+   * [_delayBetweenRequests].
    */
-  void performRequest() {
+  void _performRequest() {
     if (!_shouldSendHttpRequest()) {
       return;
     }
-
     _openRequest();
-
     _sendHttpRequest(
         _url,
         method: 'POST',
+        requestHeaders: {'Content-Type': 'application/json'},
         sendData: JSON.encode(_prepareRequest())
     ).then((xhr) {
         _handleResponse(JSON.decode(xhr.responseText));
+        _closeRequest();
+    });
+  }
+}
+
+  class LoopBackTransport extends Transport {
+    /**
+     * RequestFactory is a function like LoopBackRequest.request() that returns
+     * [Future<LoopBackRequest>].
+     */
+    final _sendLoopBackRequest;
+
+    /**
+     * Indicates whether a [LoopBackRequest] is currently on the way.
+     */
+    bool _isRunning = false;
+
+
+
+    bool _isDirty;
+
+    LoopBackTransport(this._sendLoopBackRequest);
+
+    markDirty() {
+      _isDirty = true;
+      performRequest();
+    }
+
+    bool _shouldSendLoopBackRequest() {
+      return !_isRunning &&
+          _isDirty;
+    }
+
+    void _openRequest() {
+      _isRunning = true;
+      _isDirty = false;
+    }
+
+    void _closeRequest() {
+      _isRunning = false;
+      performRequest();
+    }
+
+    /**
+     * Begins performing LoopBackRequest. Is not launched if another request is
+     * already running or the request Queue is empty. Sets [_isRunning] as true
+     * for the time this request is running and hooks up another request
+     * after this one.
+     */
+    void performRequest() {
+      if (!_shouldSendLoopBackRequest()) {
+        return;
+      }
+
+      _openRequest();
+
+      _sendLoopBackRequest(
+        _prepareRequest()
+      ).then((response) {
+        _handleResponse(response);
         _closeRequest();
     });
   }

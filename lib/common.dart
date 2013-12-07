@@ -13,6 +13,7 @@ import "dart:core";
 class ClientRequest {
   final dynamic args;
   final String type;
+  String authenticatedUserId;
 
   /**
    * Creates a [ClientRequest] with specified [type] and [args]

@@ -131,7 +131,8 @@ void main() {
           ..when(callsTo('call')).alwaysReturn(new Future.value(httpResponse));
 
       var transport = new HttpTransport(
-          (url, {method, sendData}) => sendHttpRequest(url, method, sendData),
+          (url, {method, requestHeaders, sendData}) =>
+              sendHttpRequest(url, method, requestHeaders, sendData),
           "url",
           new Duration()
       );
@@ -150,7 +151,39 @@ void main() {
 
       // then
       sendHttpRequest.getLogs(
-          callsTo('call', 'url', 'POST', JSON.encode(packedRequests)))
+          callsTo('call', 'url', 'POST', {'Content-Type': 'application/json'},
+                  JSON.encode(packedRequests))).verify(happenedOnce);
+    });
+  });
+
+  group('LoopBackTransport', () {
+    test('send packedRequests.', () {
+      // given
+      var response = [{"id": 1}, {"id": 2}];
+
+      var packedRequests = [{"packedId": 1}, {"packedId": 2}];
+      var sendLoopBackRequest = new Mock()
+          ..when(callsTo('call')).alwaysReturn(new Future.value(response));
+
+      var transport = new LoopBackTransport(
+          (List<PackedRequest> requests) => sendLoopBackRequest(requests)
+      );
+
+      transport.setHandlers(() => packedRequests,
+
+          // then
+          expectAsync1((receivedResponse) {
+            expect(receivedResponse, equals(response));
+          }
+
+      ));
+
+      // when
+      transport.markDirty();
+
+      // then
+      sendLoopBackRequest.getLogs(
+          callsTo('call', packedRequests))
             .verify(happenedOnce);
     });
   });
