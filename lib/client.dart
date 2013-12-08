@@ -3,8 +3,63 @@
 // BSD-style license that can be found in the LICENSE file.
 
 /**
- * A library for server-client communication and interaction
- * Client side
+ * A library for efficient server-client communication that guarantees order of
+ * requests and responses.
+ *
+ * ## Examples
+ *
+ * Following example demonstrate simple usage of connection in browser. It is
+ * guaranteed that the first request finishes before the second.
+ *
+ *      import "package:clean_ajax/client_browser.dart";
+ *
+ *      var connection = createHttpConnection("http://www.example.com/api/",
+ *                                            new Duration(milliseconds: 100));
+ *
+ *      connection.send(() => new ClientRequest("user/get", {"name": "John"}))
+ *      .then((user) {
+ *        showUserInfo(user);
+ *      });
+ *
+ *      connection.send(() => new ClientRequest("user/get", {"name": "Peter"}))
+ *      .then((user) {
+ *        showUserInfo(user);
+ *      });
+ *
+ * It can be handy to send some requests periodically, for example to check the
+ * state of the email inbox.
+ *
+ *      import "package:clean_ajax/client_browser.dart";
+ *
+ *      var connection = createHttpConnection("http://www.example.com/api/",
+ *                                            new Duration(milliseconds: 100));
+ *
+ *      connection.sendPeriodically(() => new ClientRequest("inbox/get", {}))
+ *      .listen((inbox) {
+ *        updateInbox(inbox);
+ *      });
+ *
+ * Reusal of code on server is encouraged by [LoopBackTransport] layer, that
+ * works on the server.
+ *
+ *      import "package:clean_ajax/client_backend.dart";
+ *
+ *      var connection = createLoopBackConnection(requestHandler);
+ *
+ *      connection.send(() => new ClientRequest("user/get", {"name": "John"}))
+ *      .then((user) {
+ *        showUserInfo(user);
+ *      });
+ *
+ *      connection.send(() => new ClientRequest("user/get", {"name": "Peter"}))
+ *      .then((user) {
+ *        showUserInfo(user);
+ *      });
+ *
+ * However, [sendPeriodically] is not supported by [LoopBackTransport], it is
+ * not error to call it on the server, however it gets send only when normal
+ * [send] is triggered.
+ *
  */
 library clean_ajax.client;
 
@@ -19,14 +74,18 @@ export 'common.dart' show ClientRequest;
 typedef ClientRequest CreateRequest();
 
 /**
- * Abstract representation of connection to server.
+ * Representation of connection to server.
  */
 class Connection {
 
   final Transport _transport;
 
   /**
-   * Creates a new [Connection].
+   * Dependency injection constructor of [Connection].
+   *
+   * In majority of cases, you want to use either [createHttpConnection] or
+   * [createLoopBackConnection] factories from [clean_ajax.client_browser] and
+   * [clean_ajax.client_backend] libraries.
    */
   Connection.config(this._transport) {
     this._transport.setHandlers(_prepareRequest, _handleResponse);
@@ -83,8 +142,13 @@ class Connection {
   }
 
   /**
-   * Puts the Unprepared Request to queue.
-   * Returns [Future] object that completes when the request receives response.
+   * Schedule the send of ClientRequest created by factory function
+   * [createRequest].
+   *
+   * Request will be created immediately before the send, that makes it possible
+   * to send always mostly actual requests.
+   *
+   * Returned [Future] completes with the value of response.
    */
   Future send(CreateRequest createRequest) {
     var completer = new Completer();
@@ -108,6 +172,10 @@ class Connection {
   }
 }
 
+/**
+ * Interface implemented by various transport mechanisms used by [Connection]
+ * like [HttpTransport] and [LoopBackTransport].
+ */
 abstract class Transport {
   dynamic _prepareRequest;
   dynamic _handleResponse;
@@ -120,6 +188,9 @@ abstract class Transport {
   void markDirty();
 }
 
+/**
+ * Transport mechanism using ajax polling used by [createHttpConnection].
+ */
 class HttpTransport extends Transport {
   /**
    * RequestFactory is a function like HttpRequest.request() that returns
@@ -205,63 +276,64 @@ class HttpTransport extends Transport {
     });
   }
 }
+/**
+ * Transport mechanism used on server, that directly uses [RequestHandler],
+ * used by [createLoopBackConnection].
+ */
+class LoopBackTransport extends Transport {
+  /**
+   * RequestFactory is a function like LoopBackRequest.request() that returns
+   * [Future<LoopBackRequest>].
+   */
+  final _sendLoopBackRequest;
 
-  class LoopBackTransport extends Transport {
-    /**
-     * RequestFactory is a function like LoopBackRequest.request() that returns
-     * [Future<LoopBackRequest>].
-     */
-    final _sendLoopBackRequest;
+  /**
+   * Indicates whether a [LoopBackRequest] is currently on the way.
+   */
+  bool _isRunning = false;
 
-    /**
-     * Indicates whether a [LoopBackRequest] is currently on the way.
-     */
-    bool _isRunning = false;
+  bool _isDirty;
 
+  LoopBackTransport(this._sendLoopBackRequest);
 
+  markDirty() {
+    _isDirty = true;
+    performRequest();
+  }
 
-    bool _isDirty;
+  bool _shouldSendLoopBackRequest() {
+    return !_isRunning &&
+        _isDirty;
+  }
 
-    LoopBackTransport(this._sendLoopBackRequest);
+  void _openRequest() {
+    _isRunning = true;
+    _isDirty = false;
+  }
 
-    markDirty() {
-      _isDirty = true;
-      performRequest();
+  void _closeRequest() {
+    _isRunning = false;
+    performRequest();
+  }
+
+  /**
+   * Begins performing LoopBackRequest. Is not launched if another request is
+   * already running or the request Queue is empty. Sets [_isRunning] as true
+   * for the time this request is running and hooks up another request
+   * after this one.
+   */
+  void performRequest() {
+    if (!_shouldSendLoopBackRequest()) {
+      return;
     }
 
-    bool _shouldSendLoopBackRequest() {
-      return !_isRunning &&
-          _isDirty;
-    }
+    _openRequest();
 
-    void _openRequest() {
-      _isRunning = true;
-      _isDirty = false;
-    }
-
-    void _closeRequest() {
-      _isRunning = false;
-      performRequest();
-    }
-
-    /**
-     * Begins performing LoopBackRequest. Is not launched if another request is
-     * already running or the request Queue is empty. Sets [_isRunning] as true
-     * for the time this request is running and hooks up another request
-     * after this one.
-     */
-    void performRequest() {
-      if (!_shouldSendLoopBackRequest()) {
-        return;
-      }
-
-      _openRequest();
-
-      _sendLoopBackRequest(
-        _prepareRequest()
-      ).then((response) {
-        _handleResponse(response);
-        _closeRequest();
+    _sendLoopBackRequest(
+      _prepareRequest()
+    ).then((response) {
+      _handleResponse(response);
+      _closeRequest();
     });
   }
 }
