@@ -152,11 +152,32 @@ void main() {
       transport.handleResponse(packedResponses);
 
       // then
-      var future1 = responseStream.elementAt(0).then((value) {
-        expect(value, equals('response'));
+      return responseStream.take(2).toList().then((value) {
+        expect(value, equals(['response', 'response']));
       });
 
-      return Future.wait([future1]);
+    });
+
+    test('stop listening to correct response stream.', () {
+      // given
+      var transport = new TransportMock();
+      var connection = new Connection.config(transport);
+      var request1 = new CRMock();
+      var request2 = new CRMock();
+      var request3 = new CRMock();
+      var responseStream1 = connection.sendPeriodically(() => request1);
+      var responseStream2 = connection.sendPeriodically(() => request2);
+      var responseStream3 = connection.sendPeriodically(() => request3);
+
+
+      // when
+      return new Future.value(responseStream2.listen((value) {}).cancel()).then((_) {
+        var packedRequests = transport.prepareRequest();
+        var clientRequests = packedRequests.map((request) => request.clientRequest);
+
+        // then
+        expect(clientRequests, unorderedEquals([request1, request3]));
+      });
 
     });
 

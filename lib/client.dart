@@ -40,7 +40,7 @@ class Connection {
    */
   final Queue<Map> _requestQueue = new Queue<Map>();
 
-  final Queue<Map> _periodicRequestQueue = new Queue<Map>();
+  final Set<Map> _periodicRequests = new Set<Map>();
 
   /**
    * Maps [Request] names to their future responses.
@@ -54,7 +54,7 @@ class Connection {
 
   List<PackedRequest> _prepareRequest() {
     var request_list = [];
-    for (var request in _periodicRequestQueue) {
+    for (var request in _periodicRequests) {
       send(request['createRequest']).then((value) {
         request['controller'].add(value);
       });
@@ -99,8 +99,11 @@ class Connection {
    * Returns [Stream] that contains the responses of the sent request.
    */
   Stream sendPeriodically(CreateRequest createRequest) {
-    var streamController = new StreamController();
-    _periodicRequestQueue.add({'createRequest': createRequest, 'controller': streamController});
+    var periodicRequest = {'createRequest': createRequest};
+    var streamController = new StreamController(
+        onListen: () => _periodicRequests.remove(periodicRequest));
+    periodicRequest['controller'] = streamController;
+    _periodicRequests.add(periodicRequest);
     return streamController.stream;
   }
 }
