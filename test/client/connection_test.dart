@@ -141,15 +141,17 @@ void main() {
       var responseStream = connection.sendPeriodically(() => request);
 
       // when
-      var packedRequests1 = transport.prepareRequest();
-      var packedResponses = [];
-      packedResponses.add({'id': packedRequests1[0].id, 'response': 'response'});
-      transport.handleResponse(packedResponses);
-
-      var packedRequests2 = transport.prepareRequest();
-      packedResponses = [];
-      packedResponses.add({'id': packedRequests2[0].id, 'response': 'response'});
-      transport.handleResponse(packedResponses);
+      new Future.sync(() {
+        var packedRequests1 = transport.prepareRequest();
+        var packedResponses = [];
+        packedResponses.add({'id': packedRequests1[0].id, 'response': 'response'});
+        transport.handleResponse(packedResponses);
+      }).then((_) {
+        var packedRequests2 = transport.prepareRequest();
+        var packedResponses = [];
+        packedResponses.add({'id': packedRequests2[0].id, 'response': 'response'});
+        transport.handleResponse(packedResponses);
+      });
 
       // then
       return responseStream.take(2).toList().then((value) {
