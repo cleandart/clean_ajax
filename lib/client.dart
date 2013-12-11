@@ -39,6 +39,23 @@
  *        updateInbox(inbox);
  *      });
  *
+ * Periodical requests are canceled simply by canceling the subscription to
+ * results.
+ *
+ *      import "package:clean_ajax/client_browser.dart";
+ *
+ *      var connection = createHttpConnection("http://www.example.com/api/",
+ *                                            new Duration(milliseconds: 100));
+ *
+ *      var subscription = connection.sendPeriodically(
+ *          () => new ClientRequest("inbox/get", {})
+ *      ).listen((inbox) {
+ *        updateInbox(inbox);
+ *      });
+ *
+ *      // Stop sending requests when the inbox is closed by the user.
+ *      onInboxClose(() => subscription.cancel());
+ *
  * Reusal of code on server is encouraged by [LoopBackTransport] layer, that
  * works on the server.
  *
@@ -57,8 +74,8 @@
  *      });
  *
  * However, [sendPeriodically] is not supported by [LoopBackTransport], it is
- * not error to call it on the server, however it gets send only when normal
- * [send] is triggered.
+ * not error to call it on the server, however it gets send only first time and
+ * later times when normal [send] is triggered.
  *
  */
 library clean_ajax.client;
@@ -142,7 +159,7 @@ class Connection {
   }
 
   /**
-   * Schedule the send of ClientRequest created by factory function
+   * Schedule the send of [ClientRequest] created by factory function
    * [createRequest].
    *
    * Request will be created immediately before the send, that makes it possible
@@ -158,9 +175,21 @@ class Connection {
   }
 
   /**
-   * Send requests periodically.
+   * Schedule the [ClientRequest]s to be sent periodically and return the
+   * [Stream] of responses.
    *
-   * Returns [Stream] that contains the responses of the sent request.
+   * Every time the transport layer notifies [Connection] about being ready to
+   * send next request, [createRequest] is executed and resulting
+   * [ClientRequest] is send.
+   *
+   * Similarly to [send], this method will notify the transport layer there is
+   * request to be sent. This notification happens only as direct consequence
+   * of calling [sendPeriodically], it won't happen multiple times for single
+   * [createRequest] factory.
+   *
+   * The returned [Stream] can have only single listener, and periodical
+   * requests are canceled when the subscription to results [Stream] is
+   * canceled.
    */
   Stream sendPeriodically(CreateRequest createRequest) {
     var periodicRequest = {'createRequest': createRequest};
