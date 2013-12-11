@@ -28,7 +28,7 @@ class MockRemoteHttpServer extends Mock
         ).toList());
   }
 
-  Future<Mock> sendRequest(String url, {String method, bool withCredentials,
+  Future<Mock> send(String url, {String method, bool withCredentials,
     String responseType, String mimeType, Map<String, String> requestHeaders,
     sendData, void onProgress(e)})
   {
@@ -55,13 +55,13 @@ class CRMock extends Mock implements ClientRequest {}
 void main() {
   group('Connection', () {
 
-    test('notify transport on sendRequest.', () {
+    test('notify transport on send.', () {
       // given
       var transport = new TransportMock();
       var connection = new Connection.config(transport);
 
       // when
-      connection.sendRequest(null);
+      connection.send(null);
 
       // then
       transport.getLogs(callsTo('markDirty')).verify(happenedOnce);
@@ -75,7 +75,7 @@ void main() {
 
       // when
       for (var request in requests) {
-        connection.sendRequest(() => request);
+        connection.send(() => request);
       }
 
       // then
@@ -94,7 +94,7 @@ void main() {
 
       var futures = [];
       for (var request in requests) {
-        futures.add(connection.sendRequest(() => request));
+        futures.add(connection.send(() => request));
       }
 
       var packedRequests = transport.prepareRequest();
@@ -116,10 +116,78 @@ void main() {
       }
     });
 
+    test('send periodically.', () {
+      // given
+      var transport = new TransportMock();
+      var connection = new Connection.config(transport);
+      var request = new CRMock();
+
+      // when
+      connection.sendPeriodically(() => request);
+      var packedRequests1 = transport.prepareRequest();
+      var packedRequests2 = transport.prepareRequest();
+
+      // then
+      expect(packedRequests1[0].clientRequest, equals(request));
+      expect(packedRequests2[0].clientRequest, equals(request));
+
+    });
+
+    test('receive responses from stream periodically.', () {
+      // given
+      var transport = new TransportMock();
+      var connection = new Connection.config(transport);
+      var request = new CRMock();
+      var responseStream = connection.sendPeriodically(() => request);
+
+      // when
+      new Future.sync(() {
+        var packedRequests1 = transport.prepareRequest();
+        var packedResponses = [];
+        packedResponses.add({'id': packedRequests1[0].id, 'response': 'response'});
+        transport.handleResponse(packedResponses);
+      }).then((_) {
+        var packedRequests2 = transport.prepareRequest();
+        var packedResponses = [];
+        packedResponses.add({'id': packedRequests2[0].id, 'response': 'response'});
+        transport.handleResponse(packedResponses);
+      });
+
+      // then
+      return responseStream.take(2).toList().then((value) {
+        expect(value, equals(['response', 'response']));
+      });
+
+    });
+
+    test('stop listening to correct response stream.', () {
+      // given
+      var transport = new TransportMock();
+      var connection = new Connection.config(transport);
+      var request1 = new CRMock();
+      var request2 = new CRMock();
+      var request3 = new CRMock();
+      var responseStream1 = connection.sendPeriodically(() => request1);
+      var responseStream2 = connection.sendPeriodically(() => request2);
+      var responseStream3 = connection.sendPeriodically(() => request3);
+
+
+      // when
+      return new Future.value(responseStream2.listen((value) {}).cancel()).then((_) {
+        var packedRequests = transport.prepareRequest();
+        var clientRequests = packedRequests.map((request) => request.clientRequest);
+
+        // then
+        expect(clientRequests, unorderedEquals([request1, request3]));
+      });
+
+    });
+
   });
 
 
   group('HttpTransport', () {
+
     test('send packedRequests as JSON.', () {
       // given
       var response = [{"id": 1}, {"id": 2}];
@@ -127,6 +195,12 @@ void main() {
           ..when(callsTo('get responseText')).alwaysReturn(JSON.encode(response));
 
       var packedRequests = [{"packedId": 1}, {"packedId": 2}];
+
+      var getPackedRequests = new Mock();
+      getPackedRequests.when(callsTo('call'))
+        ..thenReturn(packedRequests)
+        ..alwaysReturn([]);
+
       var sendHttpRequest = new Mock()
           ..when(callsTo('call')).alwaysReturn(new Future.value(httpResponse));
 
@@ -137,24 +211,42 @@ void main() {
           new Duration(milliseconds: 1)
       );
 
-      transport.setHandlers(() => packedRequests,
+      transport.setHandlers(getPackedRequests,
 
           // then
           expectAsync1((receivedResponse) {
             expect(receivedResponse, equals(response));
+            transport.dispose();
           }
 
       ));
 
       // when
       transport.markDirty();
-      
+
       // then
       return new Future.delayed(new Duration(milliseconds: 10), () {
         sendHttpRequest.getLogs(
             callsTo('call', 'url', 'POST', {'Content-Type': 'application/json'},
                     JSON.encode(packedRequests))).verify(happenedOnce);
       });
+    });
+
+    test('do not send empty requests.', () {
+      // given
+      var sendHttpRequest = new Mock();
+      var transport = new HttpTransport(sendHttpRequest, "url",
+          new Duration(milliseconds: 1));
+
+      // when
+      transport.setHandlers(() => [], null);
+
+      // then
+      return new Future.delayed(new Duration(milliseconds: 10), () {
+        expect(sendHttpRequest.verifyZeroInteractions(), isTrue);
+      });
+
+
     });
   });
 
@@ -189,7 +281,7 @@ void main() {
             .verify(happenedOnce);
     });
   });
-  
+
   test('Requests are sent strictly periodicaly in HttpTransport.', () {
   // given
     var response = [{"id": 1}, {"id": 2}];
@@ -212,10 +304,10 @@ void main() {
         // then
         expectAsync1((receivedResponse) {
           expect(receivedResponse, equals(response));
-        }, 
+        },
         count: 1, max: 1
     ));
-    
+
     // when
     transport.markDirty();
     return new Future.delayed(new Duration(milliseconds: 10), () {
@@ -225,9 +317,9 @@ void main() {
             callsTo('call', 'url', 'POST', {'Content-Type': 'application/json'},
                     JSON.encode(packedRequests))).verify(happenedOnce);
       });
-    }); 
+    });
     // then
-    
+
   });
-  
+
 }

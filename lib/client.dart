@@ -99,6 +99,8 @@ class Connection {
    */
   final Queue<Map> _requestQueue = new Queue<Map>();
 
+  final Set<Map> _periodicRequests = new Set<Map>();
+
   /**
    * Maps [Request] names to their future responses.
    */
@@ -111,6 +113,11 @@ class Connection {
 
   List<PackedRequest> _prepareRequest() {
     var request_list = [];
+    for (var request in _periodicRequests) {
+      send(request['createRequest']).then((value) {
+        request['controller'].add(value);
+      });
+    }
     while (!_requestQueue.isEmpty) {
       var map = _requestQueue.removeFirst();
       var clientRequest = map['createRequest'](); // create the request
@@ -143,11 +150,25 @@ class Connection {
    *
    * Returned [Future] completes with the value of response.
    */
-  Future sendRequest(CreateRequest createRequest) {
+  Future send(CreateRequest createRequest) {
     var completer = new Completer();
     _requestQueue.add({'createRequest': createRequest, 'completer': completer});
     _transport.markDirty();
     return completer.future;
+  }
+
+  /**
+   * Send requests periodically.
+   *
+   * Returns [Stream] that contains the responses of the sent request.
+   */
+  Stream sendPeriodically(CreateRequest createRequest) {
+    var periodicRequest = {'createRequest': createRequest};
+    var streamController = new StreamController(
+        onCancel: () => _periodicRequests.remove(periodicRequest));
+    periodicRequest['controller'] = streamController;
+    _periodicRequests.add(periodicRequest);
+    return streamController.stream;
   }
 }
 
@@ -193,16 +214,6 @@ class HttpTransport extends Transport {
    */
   Duration _delayBetweenRequests;
 
-  /**
-   * _isDirty is true iff there is some request to be sent.
-   */
-  bool _isDirty;
-
-  /**
-   * If set to true, this instance stops sending http requests.
-   */
-  bool _disposed = false;
-
   Timer _timer;
 
   HttpTransport(this._sendHttpRequest, this._url, this._delayBetweenRequests);
@@ -219,28 +230,20 @@ class HttpTransport extends Transport {
    * the new requests will be sent in next "iteration" (after response is
    * received + time interval _delayBetweenRequests passes).
    */
-  markDirty() {
-    _isDirty = true;
-  }
+  markDirty() {}
 
   /**
    * Marks timer as disposed, which prevents him from future sending of http
    * requests.
    */
   dispose() {
-    _disposed = true;
-    if(_timer != null) {
-      _timer.cancel();
-    }
+    if(_timer != null) _timer.cancel();
   }
 
-  bool _shouldSendHttpRequest() {
-    return !_isRunning && _isDirty && !_disposed;
-  }
+  bool _shouldSendHttpRequest() => !_isRunning;
 
   void _openRequest() {
     _isRunning = true;
-    _isDirty = false;
   }
 
   void _closeRequest() {
@@ -258,12 +261,15 @@ class HttpTransport extends Transport {
     if (!_shouldSendHttpRequest()) {
       return;
     }
+    var data = _prepareRequest();
+    if (data.isEmpty) return;
+
     _openRequest();
     _sendHttpRequest(
         _url,
         method: 'POST',
         requestHeaders: {'Content-Type': 'application/json'},
-        sendData: JSON.encode(_prepareRequest())
+        sendData: JSON.encode(data)
     ).then((xhr) {
         _handleResponse(JSON.decode(xhr.responseText));
         _closeRequest();
