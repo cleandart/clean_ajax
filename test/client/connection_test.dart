@@ -67,6 +67,19 @@ void main() {
       transport.getLogs(callsTo('markDirty')).verify(happenedOnce);
     });
 
+    test('notify transport on sendPeriodically.', () {
+      // given
+      var transport = new TransportMock();
+      var connection = new Connection.config(transport);
+
+      // when
+      connection.sendPeriodically(null);
+
+      // then
+      transport.getLogs(callsTo('markDirty')).verify(happenedOnce);
+
+    });
+
     test('send requests in order.', () {
       // given
       var transport = new TransportMock();

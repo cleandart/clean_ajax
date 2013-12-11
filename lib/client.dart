@@ -168,6 +168,7 @@ class Connection {
         onCancel: () => _periodicRequests.remove(periodicRequest));
     periodicRequest['controller'] = streamController;
     _periodicRequests.add(periodicRequest);
+    _transport.markDirty();
     return streamController.stream;
   }
 }
