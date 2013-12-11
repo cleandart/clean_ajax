@@ -318,13 +318,18 @@ class LoopBackTransport extends Transport {
   final _sendLoopBackRequest;
 
   /**
+   * Id of the user currently authenticated.
+   */
+  final _authenticatedUserId;
+
+  /**
    * Indicates whether a [LoopBackRequest] is currently on the way.
    */
   bool _isRunning = false;
 
   bool _isDirty;
 
-  LoopBackTransport(this._sendLoopBackRequest);
+  LoopBackTransport(this._sendLoopBackRequest, [this._authenticatedUserId = null]);
 
   markDirty() {
     _isDirty = true;
@@ -359,11 +364,10 @@ class LoopBackTransport extends Transport {
 
     _openRequest();
 
-    _sendLoopBackRequest(
-      _prepareRequest()
-    ).then((response) {
-      _handleResponse(response);
-      _closeRequest();
-    });
+    _sendLoopBackRequest(_prepareRequest(), _authenticatedUserId)
+      .then((response) {
+        _handleResponse(response);
+        _closeRequest();
+      });
   }
 }
