@@ -43,10 +43,12 @@ class MockRemoteHttpServer extends Mock
 class TransportMock extends Mock implements Transport {
   Function prepareRequest;
   Function handleResponse;
+  Function handleError;
 
-  setHandlers(prepareRequest, handleResponse) {
+  setHandlers(prepareRequest, handleResponse, handleError) {
     this.prepareRequest = prepareRequest;
     this.handleResponse = handleResponse;
+    this.handleError = handleError;
   }
 }
 
@@ -196,6 +198,53 @@ void main() {
 
     });
 
+    test('complete send with error.', () {
+      // given
+      var transport = new TransportMock();
+      var error = new Mock();
+      var connection = new Connection.config(transport);
+      var request1 = connection.send(() => new CRMock());
+      var request2 = connection.send(() => new CRMock());
+      transport.prepareRequest();
+
+      // when
+      transport.handleError(error);
+
+      // then
+
+      var future1 = request1.catchError((e) {
+        expect(e, new isInstanceOf<FailedRequestException>("FailedRequestException"));
+      });
+
+      var future2 = request2.catchError((e) {
+        expect(e, new isInstanceOf<FailedRequestException>("FailedRequestException"));
+      });
+
+      return Future.wait([future1, future2]);
+
+    });
+
+    test('complete sendPeriodically with error.', () {
+      // given
+      var transport = new TransportMock();
+      var error = new Mock();
+      var connection = new Connection.config(transport);
+      var request = connection.sendPeriodically(() => new CRMock());
+      transport.prepareRequest();
+
+      // when
+      transport.handleError(error);
+
+      // then
+
+      var subscription = request.listen(null);
+      subscription.onError(expectAsync1((e) {
+        expect(e, new isInstanceOf<FailedRequestException>("FailedRequestException"));
+        subscription.cancel();
+      }));
+
+    });
+
   });
 
 
@@ -232,7 +281,7 @@ void main() {
             transport.dispose();
           }
 
-      ));
+      ), null);
 
       // when
       transport.markDirty();
@@ -252,13 +301,34 @@ void main() {
           new Duration(milliseconds: 1));
 
       // when
-      transport.setHandlers(() => [], null);
+      transport.setHandlers(() => [], null, null);
 
       // then
       return new Future.delayed(new Duration(milliseconds: 10), () {
         expect(sendHttpRequest.verifyZeroInteractions(), isTrue);
       });
 
+
+    });
+
+    test('handle error.', () {
+      // given
+      var response = new Future.delayed(new Duration(milliseconds: 1), () => throw new Mock())
+          ..catchError((e) {});
+      var sendHttpRequest = new Mock()
+          ..when(callsTo('call')).alwaysReturn(response);
+
+      var packedRequests = [{"packedId": 1}, {"packedId": 2}];
+      var transport = new HttpTransport(sendHttpRequest, "url",
+          new Duration(milliseconds: 1));
+
+      // when
+      transport.setHandlers(() => packedRequests, null,
+          expectAsync1((e) {
+            // then
+            expect(e, new isInstanceOf<FailedRequestException>("FailedRequestException"));
+          })
+      );
 
     });
   });
@@ -283,7 +353,7 @@ void main() {
             expect(receivedResponse, equals(response));
           }
 
-      ));
+      ), null);
 
       // when
       transport.markDirty();
@@ -292,6 +362,33 @@ void main() {
       sendLoopBackRequest.getLogs(
           callsTo('call', packedRequests))
             .verify(happenedOnce);
+    });
+
+    test('handle error.', () {
+      // given
+      var response = new Future.delayed(new Duration(milliseconds: 1), () => throw new Mock())
+          ..catchError((e) {});
+
+      var sendLoopBackRequest = new Mock()
+          ..when(callsTo('call')).alwaysReturn(response);
+
+      var packedRequests = [{"packedId": 1}, {"packedId": 2}];
+
+      var transport = new LoopBackTransport(
+          (List<PackedRequest> requests) => sendLoopBackRequest(requests)
+      );
+
+      // when
+      transport.setHandlers(() => packedRequests, null,
+          expectAsync1((e) {
+            // then
+            expect(e, new isInstanceOf<FailedRequestException>("FailedRequestException"));
+          })
+      );
+
+      // when
+      transport.markDirty();
+
     });
   });
 
@@ -319,7 +416,7 @@ void main() {
           expect(receivedResponse, equals(response));
         },
         count: 1, max: 1
-    ));
+    ), null);
 
     // when
     transport.markDirty();

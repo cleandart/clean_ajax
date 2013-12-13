@@ -88,6 +88,16 @@ import "dart:convert";
 import 'common.dart';
 export 'common.dart' show ClientRequest;
 
+
+/**
+ * Exception thrown when the server does not respond to request or responds
+ * with HTTP error code.
+ */
+class FailedRequestException implements Exception {
+  const FailedRequestException();
+  String toString() => "FailedRequestException";
+}
+
 typedef ClientRequest CreateRequest();
 
 /**
@@ -105,7 +115,7 @@ class Connection {
    * [clean_ajax.client_backend] libraries.
    */
   Connection.config(this._transport) {
-    this._transport.setHandlers(_prepareRequest, _handleResponse);
+    this._transport.setHandlers(_prepareRequest, _handleResponse, _handleError);
   }
 
   /**
@@ -133,6 +143,8 @@ class Connection {
     for (var request in _periodicRequests) {
       send(request['createRequest']).then((value) {
         request['controller'].add(value);
+      }).catchError((e) {
+        request['controller'].addError(e);
       });
     }
     while (!_requestQueue.isEmpty) {
@@ -156,6 +168,12 @@ class Connection {
     _responseMap.forEach((id, request) {
       throw new Exception("Request $id was not answered!");
     });
+  }
+
+  void _handleError(error) {
+    for (var completer in _responseMap.values) {
+      completer.completeError(new FailedRequestException());
+    }
   }
 
   /**
@@ -209,10 +227,12 @@ class Connection {
 abstract class Transport {
   dynamic _prepareRequest;
   dynamic _handleResponse;
+  dynamic _handleError;
 
-  setHandlers(prepareRequest, handleResponse) {
+  setHandlers(prepareRequest, handleResponse, handleError) {
     _prepareRequest = prepareRequest;
     _handleResponse = handleResponse;
+    _handleError = handleError;
   }
 
   void markDirty();
@@ -249,8 +269,8 @@ class HttpTransport extends Transport {
   HttpTransport(this._sendHttpRequest, this._url, this._delayBetweenRequests);
 
 
-  setHandlers(prepareRequest, handleResponse) {
-    super.setHandlers(prepareRequest, handleResponse);
+  setHandlers(prepareRequest, handleResponse, handleError) {
+    super.setHandlers(prepareRequest, handleResponse, handleError);
     _timer = new Timer.periodic(this._delayBetweenRequests, (_) => _performRequest());
   }
 
@@ -303,7 +323,7 @@ class HttpTransport extends Transport {
     ).then((xhr) {
         _handleResponse(JSON.decode(xhr.responseText));
         _closeRequest();
-    });
+    }).catchError((e) => _handleError(new FailedRequestException()));
   }
 }
 /**
@@ -364,6 +384,6 @@ class LoopBackTransport extends Transport {
     ).then((response) {
       _handleResponse(response);
       _closeRequest();
-    });
+    }).catchError((e) => _handleError(new FailedRequestException()));
   }
 }
