@@ -12,8 +12,8 @@ void main() {
     InputElement request = querySelector("#request");
     ParagraphElement responseElem = querySelector("#response");
 
-    connection.sendRequest(()=>new ClientRequest('dummyType',request.value)).then(
-        (response) => responseElem.text = response
+    connection.send(()=>new ClientRequest('dummyType',request.value)).then(
+        (response) => responseElem.text = "Hello world"
     );
   });
 
