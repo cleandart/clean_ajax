@@ -18,6 +18,7 @@ import 'package:clean_backend/clean_backend.dart' show Request;
 
 import 'common.dart';
 export 'common.dart' show PackedRequest;
+import 'client_backend.dart';
 
 /**
  * Type of handler which can be registered in [MultiRequestHandler] for
@@ -138,9 +139,12 @@ class MultiRequestHandler {
              (PackedRequest request) {
                // Create new server request from packed request and add
                // authenticatedUserId to it
-                 ServerRequest serverRequest = new ServerRequest(request.clientRequest.type,
-                                                                 request.clientRequest.args,
-                                                                 authenticatedUserId);
+                 ServerRequest serverRequest = new ServerRequest(
+                     request.clientRequest.type,
+                     request.clientRequest.args,
+                     authenticatedUserId,
+                     createLoopBackConnection(this, authenticatedUserId)
+                  );
                  
                  _handleClientRequest(serverRequest).then(
                      (response) {
@@ -199,23 +203,14 @@ class ServerRequest {
   final dynamic args;
   final String type;
   String authenticatedUserId;
+  Connection loopback;
 
   /**
    * Creates a [ServerRequest] with specified [type] and [args]
    * [type] is the name of the requested server function
    * [args] is a map of arguments for the specified server function
    */
-  ServerRequest(this.type, this.args, this.authenticatedUserId);
-
-  /**
-   * Create a [ServerRequest] from JSON map {'name' : something, 'args': somethingElse}
-   */
-//  factory ServerRequest.fromJson(Map data) => new ServerRequest(data['type'], data['args']);
-
-  /**
-   * Converts this [ServerRequest] to JSON serializable map.
-   */
-  Map toJson() => {'type': type, 'args': args, 'authenticatedUserId': authenticatedUserId};
+  ServerRequest(this.type, this.args, this.authenticatedUserId, this.loopback);
 }
 
 
