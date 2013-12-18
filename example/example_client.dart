@@ -13,7 +13,9 @@ void main() {
     ParagraphElement responseElem = querySelector("#response");
 
     connection.send(()=>new ClientRequest('dummyType', request.value)).then(
-        (response) => responseElem.text = request.value
+        (response) {
+          responseElem.text = request.value;
+        }
     );
   });
 

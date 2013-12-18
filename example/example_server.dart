@@ -14,13 +14,13 @@ import 'package:clean_router/common.dart';
 // Don't run example_client.dart nor index.html instead run example_server.dart and go
 // in dartium to address 0.0.0.0:8080
 
-Future simpleClientRequestHandler(ClientRequest request) =>
+Future simpleServerRequestHandler(ServerRequest request) =>
     new Future.value(request.args);
 
 void main() {
 
   MultiRequestHandler requestHandler = new MultiRequestHandler();
-  requestHandler.registerDefaultHandler(simpleClientRequestHandler);
+  requestHandler.registerDefaultHandler(simpleServerRequestHandler);
 
   Connection connection = createLoopBackConnection(requestHandler);
 
