@@ -212,15 +212,16 @@ void main() {
 
       // then
 
-      var future1 = request1.catchError((e) {
+      expect(request1, throwsA(new isInstanceOf<FailedRequestException>("FailedRequestException")));
+
+      expect(request2, throwsA(new isInstanceOf<FailedRequestException>("FailedRequestException")));
+
+
+      /*var future2 = request2.catchError((e) {
         expect(e, new isInstanceOf<FailedRequestException>("FailedRequestException"));
       });
 
-      var future2 = request2.catchError((e) {
-        expect(e, new isInstanceOf<FailedRequestException>("FailedRequestException"));
-      });
-
-      return Future.wait([future1, future2]);
+      return Future.wait([future1, future2]);*/
 
     });
 
@@ -313,10 +314,14 @@ void main() {
 
     test('handle error.', () {
       // given
-      var response = new Future.delayed(new Duration(milliseconds: 1), () => throw new Mock())
-          ..catchError((e) {});
+      /*var response = new Future.delayed(new Duration(milliseconds: 1), () => throw new Mock());
+          //..catchError((e) {});
+      expect(response, throws);
+*/
       var sendHttpRequest = new Mock()
-          ..when(callsTo('call')).alwaysReturn(response);
+          ..when(callsTo('call')).alwaysCall(
+              (url) => new Future.sync(() => throw new Mock())
+          );
 
       var packedRequests = [{"packedId": 1}, {"packedId": 2}];
       var transport = new HttpTransport(sendHttpRequest, "url",
