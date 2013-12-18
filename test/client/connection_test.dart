@@ -328,13 +328,15 @@ void main() {
     test('send packedRequests.', () {
       // given
       var response = [{"id": 1}, {"id": 2}];
+      var authenticatedUserId = new Mock();
 
       var packedRequests = [{"packedId": 1}, {"packedId": 2}];
       var sendLoopBackRequest = new Mock()
           ..when(callsTo('call')).alwaysReturn(new Future.value(response));
 
       var transport = new LoopBackTransport(
-          (List<PackedRequest> requests) => sendLoopBackRequest(requests)
+          sendLoopBackRequest,
+          authenticatedUserId
       );
 
       transport.setHandlers(() => packedRequests,
@@ -351,7 +353,7 @@ void main() {
 
       // then
       sendLoopBackRequest.getLogs(
-          callsTo('call', packedRequests))
+          callsTo('call', packedRequests, authenticatedUserId))
             .verify(happenedOnce);
     });
 
@@ -363,7 +365,7 @@ void main() {
       var packedRequests = [{"packedId": 1}, {"packedId": 2}];
 
       var transport = new LoopBackTransport(
-          (List<PackedRequest> requests) => sendLoopBackRequest(requests)
+          (List<PackedRequest> requests, authenticatedUserId) => sendLoopBackRequest(requests)
       );
 
       // when
