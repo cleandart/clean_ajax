@@ -13,7 +13,7 @@ import 'server.dart';
 export 'client.dart';
 
 Connection createLoopBackConnection(MultiRequestHandler requestHandler,
-                                    authenticatedUserId) =>
+                                    [authenticatedUserId]) =>
   new Connection.config(
       new LoopBackTransport(requestHandler.handleLoopBackRequest,
           authenticatedUserId)
