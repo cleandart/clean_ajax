@@ -211,18 +211,8 @@ void main() {
       transport.handleError(error);
 
       // then
-
       expect(request1, throwsA(new isInstanceOf<FailedRequestException>("FailedRequestException")));
-
       expect(request2, throwsA(new isInstanceOf<FailedRequestException>("FailedRequestException")));
-
-
-      /*var future2 = request2.catchError((e) {
-        expect(e, new isInstanceOf<FailedRequestException>("FailedRequestException"));
-      });
-
-      return Future.wait([future1, future2]);*/
-
     });
 
     test('complete sendPeriodically with error.', () {
@@ -314,13 +304,9 @@ void main() {
 
     test('handle error.', () {
       // given
-      /*var response = new Future.delayed(new Duration(milliseconds: 1), () => throw new Mock());
-          //..catchError((e) {});
-      expect(response, throws);
-*/
       var sendHttpRequest = new Mock()
           ..when(callsTo('call')).alwaysCall(
-              (url) => new Future.sync(() => throw new Mock())
+              (url) => new Future.error(new Mock())
           );
 
       var packedRequests = [{"packedId": 1}, {"packedId": 2}];
