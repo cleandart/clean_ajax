@@ -99,32 +99,36 @@ class MultiRequestHandler {
 //        packedRequestsFromJson(JSON.decode(request.body));
         packedRequestsFromJson(request.body);
     // decorate individual clientRequests with authenticatedUserId property
-    for(PackedRequest packedReq in packedRequests) {
-      packedReq.clientRequest.authenticatedUserId = request.authenticatedUserId;
-    }
-    _splitAndProcessRequests(packedRequests).then((response) {
-      request.response
-        ..headers.contentType = ContentType.parse("application/json")
-        ..statusCode = HttpStatus.OK
-        ..write(JSON.encode(response))
-        ..close();
-    }).catchError((e){
-      request.response
-        ..headers.contentType = ContentType.parse("application/json")
-        ..statusCode = HttpStatus.BAD_REQUEST
-        ..close();
-    },test: (e) => e is UnknownHandlerException);
+
+    _splitAndProcessRequests(packedRequests, request.authenticatedUserId)
+      .then((response) {
+        request.response
+          ..headers.contentType = ContentType.parse("application/json")
+          ..statusCode = HttpStatus.OK
+          ..write(JSON.encode(response))
+          ..close();
+      }).catchError((e){
+        request.response
+          ..headers.contentType = ContentType.parse("application/json")
+          ..statusCode = HttpStatus.BAD_REQUEST
+          ..close();
+      },test: (e) => e is UnknownHandlerException);
   }
 
-  Future<List> handleLoopBackRequest(List<PackedRequest> requests) {
-    return _splitAndProcessRequests(requests);
+  Future<List> handleLoopBackRequest(List<PackedRequest> requests,
+                                     authenticatedUserId) {
+    return _splitAndProcessRequests(requests, authenticatedUserId);
   }
 
   /**
    * Run asynchroniusly [PackedRequest]s in order as they are presented in [requests]
    * and return list of processed results from each request.
    */
-  Future<List> _splitAndProcessRequests(List<PackedRequest> requests) {
+  Future<List> _splitAndProcessRequests(List<PackedRequest> requests,
+                                        authenticatedUserId) {
+    for(var packedReq in requests) {
+      packedReq.clientRequest.authenticatedUserId = authenticatedUserId;
+    }
     final List responses = new List();
     //now you need to call on each element of requests function _handleClientRequest
     //this calls are asynchronous but must run in seqencial order
