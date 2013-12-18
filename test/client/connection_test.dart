@@ -357,11 +357,8 @@ void main() {
 
     test('handle error.', () {
       // given
-      var response = new Future.delayed(new Duration(milliseconds: 1), () => throw new Mock())
-          ..catchError((e) {});
-
       var sendLoopBackRequest = new Mock()
-          ..when(callsTo('call')).alwaysReturn(response);
+          ..when(callsTo('call')).alwaysCall((url)=>new Future.error(new Mock()));
 
       var packedRequests = [{"packedId": 1}, {"packedId": 2}];
 
