@@ -17,7 +17,7 @@ import 'package:clean_backend/clean_backend.dart' show Request;
 
 
 import 'common.dart';
-export 'common.dart' show PackedRequest;
+//export 'common.dart' show PackedRequest;
 import 'client_backend.dart';
 
 /**
@@ -108,12 +108,12 @@ class MultiRequestHandler {
           ..statusCode = HttpStatus.OK
           ..write(JSON.encode(response))
           ..close();
-      }).catchError((e){
+      }).catchError((e) {
         request.response
           ..headers.contentType = ContentType.parse("application/json")
           ..statusCode = HttpStatus.BAD_REQUEST
           ..close();
-      },test: (e) => e is UnknownHandlerException);
+      }, test: (e) => e is UnknownHandlerException);
   }
 
   Future<List> handleLoopBackRequest(List<PackedRequest> requests,
@@ -146,7 +146,7 @@ class MultiRequestHandler {
                      createLoopBackConnection(this, authenticatedUserId)
                   );
                  
-                 _handleClientRequest(serverRequest).then(
+                 return _handleServerRequest(serverRequest).then(
                      (response) {
                        responses.add({'id': request.id, 'response': response});
                  });
@@ -155,12 +155,12 @@ class MultiRequestHandler {
   }
 
   /**
-   * Try to find which handler should execute [ClientRequest].
-   * If for [ClientRequest.type] is not not registered any executor than will
+   * Try to find which handler should execute [ServerRequest].
+   * If for [ServerRequest.type] is not not registered any executor than will
    * try to run default executor if presented. In other cases throws
    * exception [UnknownHandlerException].
    */
-   Future _handleClientRequest(ServerRequest request){
+   Future _handleServerRequest(ServerRequest request){
      if(_registeredExecutors.containsKey(request.type)){
        return _registeredExecutors[request.type](request);
      } else if(_defaultExecutor != null) {

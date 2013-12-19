@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:html';
 import "package:clean_ajax/client_browser.dart";
+import 'package:clean_ajax/common.dart';
 
 // Don't run example_client.dart nor index.html instead run example_server.dart and go
 // in dartium to address 0.0.0.0:8080
