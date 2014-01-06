@@ -16,17 +16,8 @@ import 'package:clean_router/common.dart';
 // in dartium to address 0.0.0.0:8080
 
 Future simpleServerRequestHandler(ServerRequest request) {
-//  if (request.type == 'dummyType') {
-//    request.loopback.send(()=>new ClientRequest('dummy','request')).then(
-//        (response) => print('received dummy')
-//    );
-//  } else if (request.type == 'dummy') {
-//    print('handling dummy');
-//  }
-  
   return new Future.value(request.args);
 }
-
 
 void main() {
 
@@ -40,7 +31,6 @@ void main() {
         (response) => print(response)
     );
   }
-
 
   Backend.bind([], new SHA256()).then((backend) {
     backend.addDefaultHttpHeader('Access-Control-Allow-Origin','*');

@@ -33,12 +33,17 @@ class MockHttpRequest extends Mock implements HttpRequest {
 Future mockHttpBodyExctractor(MockHttpRequest request) =>
     new Future.value(request.httpBody);
 
+void createLoopBackConnection(MultiRequestHandler requestHandler, 
+                         [authenticatedUserId]) {
+  
+}
+
 void main() {
   group('MultiRequestHandler', () {
     MultiRequestHandler requestHandler;
 
     setUp(() {
-      requestHandler = new MultiRequestHandler();
+      requestHandler = new MultiRequestHandler(createLoopBackConnection);
     });
 
     verifyCorrectRequestMetaData(request, expectedHttpStatusCode) {
@@ -180,6 +185,34 @@ void main() {
               '{"id":2,"response":"defaultResponse"}]');
         });
         request.response.when(callsTo('close')).alwaysCall(closeCalled);
+    });
+    
+    test('Loopback connection in each request (T06).', () {
+      //given
+      Future mockExecutorWithLoopbackConnection(ServerRequest request) {
+        
+        expect(request.loopBack, equals(createLoopBackConnection(requestHandler, 1)));
+        
+        return new Future.value('dummyType response');
+      }
+      
+      requestHandler.registerDefaultHandler(mockExecutorWithLoopbackConnection);
+      
+      var httpRequest = new MockHttpRequest(JSON.encode(
+          [new PackedRequest(42, new ClientRequest('dummyType',15))]));
+      Request request = new Request('json', httpRequest.httpBody.body,
+          httpRequest.response, httpRequest.headers, httpRequest, {});
+
+      //when
+      requestHandler.handleHttpRequest(request);
+
+      //then
+      var closeCalled = expectAsync0(() {
+        verifyCorrectRequestMetaData(request, HttpStatus.OK);
+        verifyCorrectRequestContent(request,
+            '[{"id":42,"response":"dummyType response"}]');
+      });
+      request.response.when(callsTo('close')).alwaysCall(closeCalled);
     });
   });
 

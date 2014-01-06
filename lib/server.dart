@@ -73,6 +73,10 @@ class AlreadyRegisteredHandlerException implements Exception {
  */
 class MultiRequestHandler {
 
+  final _createLoopBackConnection;
+  
+  MultiRequestHandler([this._createLoopBackConnection = createLoopBackConnection]);
+  
   /**
    * List of handlers for [ClientRequest]. Index is matching with
    * [ClientRequest.type]
@@ -82,8 +86,6 @@ class MultiRequestHandler {
    * Default handler form [ClientRequest]
    */
   ServerRequestHandler _defaultExecutor = null;
-
-
 
   /**
    * Process [HttpRequest] extract from it [HttpBody]
@@ -142,7 +144,7 @@ class MultiRequestHandler {
                      request.clientRequest.type,
                      request.clientRequest.args,
                      authenticatedUserId,
-                     createLoopBackConnection(this, authenticatedUserId)
+                     _createLoopBackConnection(this, authenticatedUserId)
                   );
                  
                  return _handleServerRequest(serverRequest).then(
@@ -202,14 +204,14 @@ class ServerRequest {
   final dynamic args;
   final String type;
   String authenticatedUserId;
-  Connection loopback;
+  Connection loopBack;
 
   /**
    * Creates a [ServerRequest] with specified [type] and [args]
    * [type] is the name of the requested server function
    * [args] is a map of arguments for the specified server function
    */
-  ServerRequest(this.type, this.args, this.authenticatedUserId, this.loopback);
+  ServerRequest(this.type, this.args, this.authenticatedUserId, this.loopBack);
 }
 
 
