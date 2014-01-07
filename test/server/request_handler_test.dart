@@ -6,6 +6,7 @@ library request_handler_test.dart;
 
 import 'package:unittest/unittest.dart';
 import 'package:clean_ajax/server.dart';
+import 'package:clean_ajax/client.dart';
 import 'package:clean_ajax/common.dart';
 import 'package:unittest/mock.dart';
 import 'dart:async';
@@ -17,6 +18,7 @@ import 'package:clean_backend/clean_backend.dart' show Request;
 class MockHttpBody extends Mock implements HttpBody {}
 class MockHttpResponse extends Mock implements HttpResponse {}
 class MockHttpHeaders extends Mock implements HttpHeaders {}
+class MockConnection extends Mock implements Connection {}
 
 class MockHttpRequest extends Mock implements HttpRequest {
   Mock httpBody = new MockHttpBody();
@@ -29,21 +31,15 @@ class MockHttpRequest extends Mock implements HttpRequest {
   }
 }
 
-
 Future mockHttpBodyExctractor(MockHttpRequest request) =>
     new Future.value(request.httpBody);
-
-void createLoopBackConnection(MultiRequestHandler requestHandler, 
-                         [authenticatedUserId]) {
-  
-}
 
 void main() {
   group('MultiRequestHandler', () {
     MultiRequestHandler requestHandler;
 
     setUp(() {
-      requestHandler = new MultiRequestHandler(createLoopBackConnection);
+      requestHandler = new MultiRequestHandler();
     });
 
     verifyCorrectRequestMetaData(request, expectedHttpStatusCode) {
@@ -189,30 +185,23 @@ void main() {
     
     test('Loopback connection in each request (T06).', () {
       //given
-      Future mockExecutorWithLoopbackConnection(ServerRequest request) {
+      var loopBackConnection = new MockConnection();
+      var createLoopBackConnection = new MockConnection()
+        ..when(callsTo('call')).alwaysReturn(loopBackConnection);
+
+      var requestHandler = new MultiRequestHandler(createLoopBackConnection);
         
-        expect(request.loopBack, equals(createLoopBackConnection(requestHandler, 1)));
-        
-        return new Future.value('dummyType response');
-      }
-      
-      requestHandler.registerDefaultHandler(mockExecutorWithLoopbackConnection);
-      
       var httpRequest = new MockHttpRequest(JSON.encode(
           [new PackedRequest(42, new ClientRequest('dummyType',15))]));
       Request request = new Request('json', httpRequest.httpBody.body,
           httpRequest.response, httpRequest.headers, httpRequest, {});
-
+        
       //when
       requestHandler.handleHttpRequest(request);
-
+      
       //then
-      var closeCalled = expectAsync0(() {
-        verifyCorrectRequestMetaData(request, HttpStatus.OK);
-        verifyCorrectRequestContent(request,
-            '[{"id":42,"response":"dummyType response"}]');
-      });
-      request.response.when(callsTo('close')).alwaysCall(closeCalled);
+      createLoopBackConnection.getLogs(callsTo('call', requestHandler))
+        .verify(happenedOnce);
     });
   });
 
