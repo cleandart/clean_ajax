@@ -195,12 +195,14 @@ void main() {
           [new PackedRequest(42, new ClientRequest('dummyType',15))]));
       Request request = new Request('json', httpRequest.httpBody.body,
           httpRequest.response, httpRequest.headers, httpRequest, {});
+      
+      request.authenticatedUserId = '13';
         
       //when
       requestHandler.handleHttpRequest(request);
       
       //then
-      createLoopBackConnection.getLogs(callsTo('call', requestHandler))
+      createLoopBackConnection.getLogs(callsTo('call', requestHandler, '13'))
         .verify(happenedOnce);
     });
   });
