@@ -13,7 +13,6 @@ import "dart:core";
 class ClientRequest {
   final dynamic args;
   final String type;
-  String authenticatedUserId;
 
   /**
    * Creates a [ClientRequest] with specified [type] and [args]
@@ -23,7 +22,7 @@ class ClientRequest {
   ClientRequest(this.type, this.args);
 
   /**
-   * Create a [ClientRequest] from JSON map {'name' : something, 'args' somethingElse}
+   * Create a [ClientRequest] from JSON map {'name' : something, 'args': somethingElse}
    */
   factory ClientRequest.fromJson(Map data) => new ClientRequest(data['type'], data['args']);
 

@@ -6,6 +6,8 @@ library request_handler_test.dart;
 
 import 'package:unittest/unittest.dart';
 import 'package:clean_ajax/server.dart';
+import 'package:clean_ajax/client.dart';
+import 'package:clean_ajax/common.dart';
 import 'package:unittest/mock.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -16,6 +18,7 @@ import 'package:clean_backend/clean_backend.dart' show Request;
 class MockHttpBody extends Mock implements HttpBody {}
 class MockHttpResponse extends Mock implements HttpResponse {}
 class MockHttpHeaders extends Mock implements HttpHeaders {}
+class MockConnection extends Mock implements Connection {}
 
 class MockHttpRequest extends Mock implements HttpRequest {
   Mock httpBody = new MockHttpBody();
@@ -28,12 +31,10 @@ class MockHttpRequest extends Mock implements HttpRequest {
   }
 }
 
-
 Future mockHttpBodyExctractor(MockHttpRequest request) =>
     new Future.value(request.httpBody);
 
 void main() {
-
   group('MultiRequestHandler', () {
     MultiRequestHandler requestHandler;
 
@@ -58,12 +59,13 @@ void main() {
        expect(content,equals(expectedContent));
     }
 
-    test('No ClientRequestHandler registered (T01).', () {
+    test('No ServerRequestHandler registered (T01).', () {
       //given
       var httpRequest = new MockHttpRequest(JSON.encode(
           [new PackedRequest(47, new ClientRequest('test1',15))]));
       Request request = new Request('json', httpRequest.httpBody.body,
           httpRequest.response, httpRequest.headers, httpRequest, {});
+      
       //when
       requestHandler.handleHttpRequest(request);
 
@@ -74,7 +76,7 @@ void main() {
       request.response.when(callsTo('close')).alwaysCall(closeCalled);
     });
 
-    test('One ClientRequestHandler execution (TO2).', () {
+    test('One ServerRequestHandler execution (TO2).', () {
         //given
         Future mockExecutor(request) => new Future.value('dummyResponse');
         requestHandler.registerHandler('dummyType', mockExecutor);
@@ -95,7 +97,7 @@ void main() {
         request.response.when(callsTo('close')).alwaysCall(closeCalled);
     });
 
-    test('Default ClientRequestHandler execution (TO3).', () {
+    test('Default ServerRequestHandler execution (TO3).', () {
         //given
         Future mockExecutor(request) => new Future.value('dummyResponse');
         requestHandler.registerDefaultHandler(mockExecutor);
@@ -116,12 +118,12 @@ void main() {
         request.response.when(callsTo('close')).alwaysCall(closeCalled);
     });
 
-    test('ClientRequestHandler execution with more packed requests in order '
+    test('ServerRequestHandler execution with more packed requests in order '
         '(TO4).', () {
         //given
         List<String> orderOfExecution = new List<String>();
 
-        Future mockExecutor(ClientRequest request) {
+        Future mockExecutor(ServerRequest request) {
           orderOfExecution.add(request.args.toString());
           return new Future.value(request.type);
         }
@@ -151,7 +153,7 @@ void main() {
         request.response.when(callsTo('close')).alwaysCall(closeCalled);
     });
 
-    test('Specific and default ClientRequestHandler execution (TO5).', () {
+    test('Specific and default ServerRequestHandler execution (TO5).', () {
         //given
         Future mockExecutorSpecific(request) =>
             new Future.delayed(new Duration(seconds: 2),()=>'specificResponse');
@@ -179,6 +181,29 @@ void main() {
               '{"id":2,"response":"defaultResponse"}]');
         });
         request.response.when(callsTo('close')).alwaysCall(closeCalled);
+    });
+    
+    test('Loopback connection in each request (T06).', () {
+      //given
+      var loopBackConnection = new MockConnection();
+      var createLoopBackConnection = new MockConnection()
+        ..when(callsTo('call')).alwaysReturn(loopBackConnection);
+
+      var requestHandler = new MultiRequestHandler(createLoopBackConnection);
+        
+      var httpRequest = new MockHttpRequest(JSON.encode(
+          [new PackedRequest(42, new ClientRequest('dummyType',15))]));
+      Request request = new Request('json', httpRequest.httpBody.body,
+          httpRequest.response, httpRequest.headers, httpRequest, {});
+      
+      request.authenticatedUserId = '13';
+        
+      //when
+      requestHandler.handleHttpRequest(request);
+      
+      //then
+      createLoopBackConnection.getLogs(callsTo('call', requestHandler, '13'))
+        .verify(happenedOnce);
     });
   });
 

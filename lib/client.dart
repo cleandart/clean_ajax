@@ -86,7 +86,6 @@ import "dart:collection";
 import "dart:convert";
 
 import 'common.dart';
-export 'common.dart' show ClientRequest;
 
 typedef ClientRequest CreateRequest();
 
@@ -371,3 +370,4 @@ class LoopBackTransport extends Transport {
       });
   }
 }
+
