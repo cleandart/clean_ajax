@@ -7,6 +7,7 @@ import 'package:clean_ajax/server.dart';
 import 'dart:async';
 import 'package:clean_ajax/client.dart';
 import 'package:clean_ajax/client_backend.dart';
+import 'package:clean_ajax/common.dart';
 import 'package:crypto/crypto.dart';
 import 'package:clean_router/common.dart';
 
@@ -14,13 +15,14 @@ import 'package:clean_router/common.dart';
 // Don't run example_client.dart nor index.html instead run example_server.dart and go
 // in dartium to address 0.0.0.0:8080
 
-Future simpleClientRequestHandler(ClientRequest request) =>
-    new Future.value(request.args);
+Future simpleServerRequestHandler(ServerRequest request) {
+  return new Future.value(request.args);
+}
 
 void main() {
 
   MultiRequestHandler requestHandler = new MultiRequestHandler();
-  requestHandler.registerDefaultHandler(simpleClientRequestHandler);
+  requestHandler.registerDefaultHandler(simpleServerRequestHandler);
 
   Connection connection = createLoopBackConnection(requestHandler);
 
@@ -29,7 +31,6 @@ void main() {
         (response) => print(response)
     );
   }
-
 
   Backend.bind([], new SHA256()).then((backend) {
     backend.addDefaultHttpHeader('Access-Control-Allow-Origin','*');

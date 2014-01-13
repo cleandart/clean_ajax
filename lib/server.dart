@@ -17,13 +17,13 @@ import 'package:clean_backend/clean_backend.dart' show Request;
 
 
 import 'common.dart';
-export 'common.dart' show ClientRequest, PackedRequest;
+import 'client_backend.dart';
 
 /**
  * Type of handler which can be registered in [MultiRequestHandler] for
- * processing [ClientRequest]
+ * processing [ServerRequest]
  */
-typedef Future ClientRequestHandler(ClientRequest request);
+typedef Future ServerRequestHandler(ServerRequest request);
 
 /**
  * Helper type function extracting [HttpBody] from [HttpRequest]
@@ -73,17 +73,19 @@ class AlreadyRegisteredHandlerException implements Exception {
  */
 class MultiRequestHandler {
 
+  final _createLoopBackConnection;
+  
+  MultiRequestHandler([this._createLoopBackConnection = createLoopBackConnection]);
+  
   /**
    * List of handlers for [ClientRequest]. Index is matching with
    * [ClientRequest.type]
    */
-  final Map<String, ClientRequestHandler> _registeredExecutors = new Map();
+  final Map<String, ServerRequestHandler> _registeredExecutors = new Map();
   /**
    * Default handler form [ClientRequest]
    */
-  ClientRequestHandler _defaultExecutor = null;
-
-
+  ServerRequestHandler _defaultExecutor = null;
 
   /**
    * Process [HttpRequest] extract from it [HttpBody]
@@ -107,12 +109,12 @@ class MultiRequestHandler {
           ..statusCode = HttpStatus.OK
           ..write(JSON.encode(response))
           ..close();
-      }).catchError((e){
+      }).catchError((e) {
         request.response
           ..headers.contentType = ContentType.parse("application/json")
           ..statusCode = HttpStatus.BAD_REQUEST
           ..close();
-      },test: (e) => e is UnknownHandlerException);
+      }, test: (e) => e is UnknownHandlerException);
   }
 
   Future<List> handleLoopBackRequest(List<PackedRequest> requests,
@@ -126,31 +128,40 @@ class MultiRequestHandler {
    */
   Future<List> _splitAndProcessRequests(List<PackedRequest> requests,
                                         authenticatedUserId) {
-    for(var packedReq in requests) {
-      packedReq.clientRequest.authenticatedUserId = authenticatedUserId;
-    }
+    
     final List responses = new List();
     //now you need to call on each element of requests function _handleClientRequest
-    //this calls are asynchronous but must run in seqencial order
+    //this calls are asynchronous but must run in sequencial order
     //results from calls are collected inside response
-    //if you encounter error durig execution of any fuction run you end
+    //if you encounter error during execution of any fuction run you end
     //execution of all next functions and complete future result with error
     return Future.forEach(
              requests,
-             (PackedRequest request) =>
-                 _handleClientRequest(request.clientRequest).then((response){
-                   responses.add({'id': request.id, 'response': response});
-                 })
+             (PackedRequest request) {
+               // Create new server request from packed request and add
+               // authenticatedUserId to it
+                 ServerRequest serverRequest = new ServerRequest(
+                     request.clientRequest.type,
+                     request.clientRequest.args,
+                     authenticatedUserId,
+                     _createLoopBackConnection(this, authenticatedUserId)
+                  );
+                 
+                 return _handleServerRequest(serverRequest).then(
+                     (response) {
+                       responses.add({'id': request.id, 'response': response});
+                 });
+             }
            ).then((_)=>new Future.value(responses));
   }
 
   /**
-   * Try to find which handler should execute [ClientRequest].
-   * If for [ClientRequest.type] is not not registered any executor than will
+   * Try to find which handler should execute [ServerRequest].
+   * If for [ServerRequest.type] is not not registered any executor than will
    * try to run default executor if presented. In other cases throws
    * exception [UnknownHandlerException].
    */
-   Future _handleClientRequest(ClientRequest request){
+   Future _handleServerRequest(ServerRequest request){
      if(_registeredExecutors.containsKey(request.type)){
        return _registeredExecutors[request.type](request);
      } else if(_defaultExecutor != null) {
@@ -166,7 +177,7 @@ class MultiRequestHandler {
     * not registerd.
     * Multiple registration cause exception [AlreadyRegisteredHandlerException].
     */
-   void registerDefaultHandler(ClientRequestHandler requestExecutor)
+   void registerDefaultHandler(ServerRequestHandler requestExecutor)
    {
      if (_defaultExecutor == null) {
        _defaultExecutor = requestExecutor;
@@ -180,7 +191,7 @@ class MultiRequestHandler {
     * [ClientRequest.type] setted to [name]. Multiple registration for
     * same [name] cause exception [AlreadyRegisteredHandlerException].
     */
-   void registerHandler(String name, ClientRequestHandler requestExecutor){
+   void registerHandler(String name, ServerRequestHandler requestExecutor){
      if(_registeredExecutors.containsKey(name)){
        throw new AlreadyRegisteredHandlerException(name);
      } else {
@@ -188,3 +199,19 @@ class MultiRequestHandler {
      }
    }
 }
+
+class ServerRequest {
+  final dynamic args;
+  final String type;
+  String authenticatedUserId;
+  Connection loopBack;
+
+  /**
+   * Creates a [ServerRequest] with specified [type] and [args]
+   * [type] is the name of the requested server function
+   * [args] is a map of arguments for the specified server function
+   */
+  ServerRequest(this.type, this.args, this.authenticatedUserId, this.loopBack);
+}
+
+

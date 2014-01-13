@@ -86,7 +86,6 @@ import "dart:collection";
 import "dart:convert";
 
 import 'common.dart';
-export 'common.dart' show ClientRequest;
 
 
 /**
@@ -392,3 +391,4 @@ class LoopBackTransport extends Transport {
 
   }
 }
+
