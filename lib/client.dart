@@ -87,6 +87,8 @@ import "dart:convert";
 
 import 'common.dart';
 
+export 'common.dart' show ClientRequest;
+
 
 /**
  * Exception thrown when the server does not respond to request or responds
