@@ -74,9 +74,9 @@ class AlreadyRegisteredHandlerException implements Exception {
 class MultiRequestHandler {
 
   final _createLoopBackConnection;
-  
+
   MultiRequestHandler([this._createLoopBackConnection = createLoopBackConnection]);
-  
+
   /**
    * List of handlers for [ClientRequest]. Index is matching with
    * [ClientRequest.type]
@@ -107,7 +107,7 @@ class MultiRequestHandler {
         request.response
           ..headers.contentType = ContentType.parse("application/json")
           ..statusCode = HttpStatus.OK
-          ..write(JSON.encode(response))
+          ..write(JSON.encode({'responses': response, 'authenticatedUserId': request.authenticatedUserId}))
           ..close();
       }).catchError((e) {
         request.response
@@ -128,7 +128,7 @@ class MultiRequestHandler {
    */
   Future<List> _splitAndProcessRequests(List<PackedRequest> requests,
                                         authenticatedUserId) {
-    
+
     final List responses = new List();
     //now you need to call on each element of requests function _handleClientRequest
     //this calls are asynchronous but must run in sequencial order
@@ -146,7 +146,7 @@ class MultiRequestHandler {
                      authenticatedUserId,
                      _createLoopBackConnection(this, authenticatedUserId)
                   );
-                 
+
                  return _handleServerRequest(serverRequest).then(
                      (response) {
                        responses.add({'id': request.id, 'response': response});

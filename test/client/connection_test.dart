@@ -20,12 +20,12 @@ class MockRemoteHttpServer extends Mock
 
   _generateResposne(sendData) {
     List decodedList = JSON.decode(sendData);
-    return JSON.encode(decodedList.map(
+    return JSON.encode({'authenticatedUserId': 'someAuthenticatedId', 'responses': decodedList.map(
         (request) => {'id': request['id'],
                       'response': _reqToRes(request['clientRequest']['type'],
                                             request['clientRequest']['args']
                      )}
-        ).toList());
+        ).toList()});
   }
 
   Future<Mock> send(String url, {String method, bool withCredentials,
@@ -121,7 +121,7 @@ void main() {
       }
 
       // when
-      transport.handleResponse(packedResponses);
+      transport.handleResponse({'authenticatedUserId': '', 'responses': packedResponses});
 
       // then
       for (var i = 0; i < futures.length; i++) {
@@ -160,12 +160,12 @@ void main() {
         var packedRequests1 = transport.prepareRequest();
         var packedResponses = [];
         packedResponses.add({'id': packedRequests1[0].id, 'response': 'response'});
-        transport.handleResponse(packedResponses);
+        transport.handleResponse({'authenticatedUserId': '', 'responses': packedResponses});
       }).then((_) {
         var packedRequests2 = transport.prepareRequest();
         var packedResponses = [];
         packedResponses.add({'id': packedRequests2[0].id, 'response': 'response'});
-        transport.handleResponse(packedResponses);
+        transport.handleResponse({'authenticatedUserId': '', 'responses': packedResponses});
       });
 
       // then
@@ -343,7 +343,7 @@ void main() {
 
           // then
           expectAsync1((receivedResponse) {
-            expect(receivedResponse, equals(response));
+            expect(receivedResponse, equals({'responses':response, 'authenticatedUserId': authenticatedUserId}));
           }
 
       ), null);
