@@ -112,7 +112,7 @@ class Connection {
   String get authenticatedUserId => _authenticatedUserId;
 
   final StreamController<String> _onAuthenticationUserIdChangeController =
-      new StreamController.broadcast(sync: true);
+      new StreamController.broadcast();
 
   Stream<String> get onAuthenticationUserIdChange => _onAuthenticationUserIdChangeController.stream;
 

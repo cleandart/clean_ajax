@@ -57,6 +57,24 @@ class CRMock extends Mock implements ClientRequest {}
 void main() {
   group('Connection', () {
 
+
+    test('handleResponse set autheticated userId.', () {
+      // given
+      var transport = new TransportMock();
+      var connection = new Connection.config(transport);
+      var request = new CRMock();
+      var response = "response";
+      var future = connection.send(() => request);
+      var packedRequests = transport.prepareRequest();
+      var packedResponses = [{'id': packedRequests[0].id, 'response': response}];
+
+      // when
+      transport.handleResponse({'authenticatedUserId': 'someAuthenticatedUserId', 'responses': packedResponses});
+
+      // then
+      expect(connection.authenticatedUserId, equals('someAuthenticatedUserId'));
+    });
+
     test('notify transport on send.', () {
       // given
       var transport = new TransportMock();
@@ -68,6 +86,43 @@ void main() {
       // then
       transport.getLogs(callsTo('markDirty')).verify(happenedOnce);
     });
+
+    solo_test('handleResponse adds to stream on AuthenticatedUserIdChange.', () {
+      // given
+      var transport = new TransportMock();
+      var connection = new Connection.config(transport);
+      var request = new CRMock();
+      var response = "response";
+      var future = connection.send(() => request);
+      var packedRequests = transport.prepareRequest();
+      var packedResponses = [{'id': packedRequests[0].id, 'response': response}];
+      transport.handleResponse({'authenticatedUserId': 'someAuthenticatedUserId', 'responses': packedResponses});
+
+      // then
+      var ll = connection.onAuthenticationUserIdChange.listen(((authUserId)
+          {expect(true, isFalse, reason: 'Should not be reached');}));
+
+      // when
+      transport.handleResponse({'authenticatedUserId': 'someAuthenticatedUserId', 'responses': packedResponses});
+
+
+
+
+
+    });
+
+    test('notify transport on send.', () {
+      // given
+      var transport = new TransportMock();
+      var connection = new Connection.config(transport);
+
+      // when
+      connection.send(null);
+
+      // then
+      transport.getLogs(callsTo('markDirty')).verify(happenedOnce);
+    });
+
 
     test('notify transport on sendPeriodically.', () {
       // given
