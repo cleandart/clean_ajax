@@ -151,8 +151,12 @@ class Connection {
     while (!_requestQueue.isEmpty) {
       var map = _requestQueue.removeFirst();
       var clientRequest = map['createRequest'](); // create the request
-      request_list.add(new PackedRequest(requestCount, clientRequest));
-      _responseMap[requestCount++] = map['completer'];
+      if (clientRequest == null) {
+        map['completer'].complete(null);
+      } else {
+        request_list.add(new PackedRequest(requestCount, clientRequest));
+        _responseMap[requestCount++] = map['completer'];
+      }
     }
     return request_list;
   }
