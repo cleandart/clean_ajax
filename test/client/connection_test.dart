@@ -75,19 +75,7 @@ void main() {
       expect(connection.authenticatedUserId, equals('someAuthenticatedUserId'));
     });
 
-    test('notify transport on send.', () {
-      // given
-      var transport = new TransportMock();
-      var connection = new Connection.config(transport);
-
-      // when
-      connection.send(null);
-
-      // then
-      transport.getLogs(callsTo('markDirty')).verify(happenedOnce);
-    });
-
-    solo_test('handleResponse adds to stream on AuthenticatedUserIdChange.', () {
+    test('handleResponse adds to stream on AuthenticatedUserIdChange.', () {
       // given
       var transport = new TransportMock();
       var connection = new Connection.config(transport);
@@ -96,18 +84,37 @@ void main() {
       var future = connection.send(() => request);
       var packedRequests = transport.prepareRequest();
       var packedResponses = [{'id': packedRequests[0].id, 'response': response}];
-      transport.handleResponse({'authenticatedUserId': 'someAuthenticatedUserId', 'responses': packedResponses});
 
       // then
-      var ll = connection.onAuthenticationUserIdChange.listen(((authUserId)
-          {expect(true, isFalse, reason: 'Should not be reached');}));
+      connection.onAuthenticationUserIdChange.listen((expectAsync1((authUserId)
+          {expect(authUserId, equals('someAuthenticatedUserId'));})));
 
       // when
       transport.handleResponse({'authenticatedUserId': 'someAuthenticatedUserId', 'responses': packedResponses});
 
+    });
 
+    test("handleResponse with same authenticatedUserId don't adds to stream onAuthenticatedUserIdChange.", () {
+      // given
+      var transport = new TransportMock();
+      var connection = new Connection.config(transport);
+      var request = new CRMock();
+      var response = "response";
+      var future = connection.send(() => request);
+      var packedRequests = transport.prepareRequest();
+      var packedResponses = [{'id': packedRequests[0].id, 'response': response}];
 
+      Future handle() {
+        transport.handleResponse({'authenticatedUserId': 'someAuthenticatedUserId', 'responses': packedResponses});
+        return new Future.delayed(new Duration(seconds:0));
+      }
 
+      // then
+      Future ll = handle().then((_) {connection.onAuthenticationUserIdChange.listen((protectAsync1((_)
+          {expect(true, isFalse, reason: 'Should not be reached');})));});
+
+      // when
+      return Future.wait([ll.then((_) {transport.handleResponse({'authenticatedUserId': 'someAuthenticatedUserId', 'responses': packedResponses});})]);
 
     });
 
