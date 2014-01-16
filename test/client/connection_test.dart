@@ -85,12 +85,16 @@ void main() {
       var packedRequests = transport.prepareRequest();
       var packedResponses = [{'id': packedRequests[0].id, 'response': response}];
 
-      // then
-      connection.onAuthenticationUserIdChange.listen((expectAsync1((authUserId)
-          {expect(authUserId, equals('someAuthenticatedUserId'));})));
+      Completer c=new Completer();
+      connection.onAuthenticationUserIdChange.listen((_) =>c.complete(_));
 
       // when
       transport.handleResponse({'authenticatedUserId': 'someAuthenticatedUserId', 'responses': packedResponses});
+
+
+
+    //then
+      expect(c.future, completion('someAuthenticatedUserId'));
 
     });
 
