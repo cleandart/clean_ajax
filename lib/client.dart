@@ -99,6 +99,11 @@ class FailedRequestException implements Exception {
   String toString() => "FailedRequestException";
 }
 
+class CancelError implements Exception {
+  const CancelError();
+  String toString() => "CancelError";
+}
+
 typedef ClientRequest CreateRequest();
 
 /**
@@ -152,7 +157,7 @@ class Connection {
       var map = _requestQueue.removeFirst();
       var clientRequest = map['createRequest'](); // create the request
       if (clientRequest == null) {
-        map['completer'].complete(null);
+        map['completer'].completeError(new CancelError());
       } else {
         request_list.add(new PackedRequest(requestCount, clientRequest));
         _responseMap[requestCount++] = map['completer'];

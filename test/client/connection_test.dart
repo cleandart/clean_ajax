@@ -90,7 +90,8 @@ void main() {
 
       // when
       for (var request in requests) {
-        connection.send(() => request);
+        connection.send(() => request).catchError(
+            expectAsync1((e) => expect(e, new isInstanceOf<CancelError>())));
       }
 
       // then
@@ -107,7 +108,9 @@ void main() {
 
       // when
       for (var request in requests) {
-        connection.send(() => request);
+        if(request == null) connection.send(() => request)
+          .catchError(expectAsync1((e) => expect(e, new isInstanceOf<CancelError>())));
+        else connection.send(() => request);
       }
 
       // then
