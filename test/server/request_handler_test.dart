@@ -65,7 +65,7 @@ void main() {
           [new PackedRequest(47, new ClientRequest('test1',15))]));
       Request request = new Request('json', httpRequest.httpBody.body,
           httpRequest.response, httpRequest.headers, httpRequest, {});
-      
+
       //when
       requestHandler.handleHttpRequest(request);
 
@@ -84,6 +84,7 @@ void main() {
             [new PackedRequest(47, new ClientRequest('dummyType',15))]));
         Request request = new Request('json', httpRequest.httpBody.body,
             httpRequest.response, httpRequest.headers, httpRequest, {});
+        request.authenticatedUserId = "someUserId";
 
         //when
         requestHandler.handleHttpRequest(request);
@@ -92,7 +93,7 @@ void main() {
         var closeCalled = expectAsync0(() {
           verifyCorrectRequestMetaData(request, HttpStatus.OK);
           verifyCorrectRequestContent(request,
-              '[{"id":47,"response":"dummyResponse"}]');
+              '{"responses":[{"id":47,"response":"dummyResponse"}],"authenticatedUserId":"someUserId"}');
         });
         request.response.when(callsTo('close')).alwaysCall(closeCalled);
     });
@@ -105,6 +106,7 @@ void main() {
             [new PackedRequest(47, new ClientRequest('dummyType',15))]));
         Request request = new Request('json', httpRequest.httpBody.body,
             httpRequest.response, httpRequest.headers, httpRequest, {});
+        request.authenticatedUserId = "someUserId";
 
         //when
         requestHandler.handleHttpRequest(request);
@@ -113,7 +115,7 @@ void main() {
         var closeCalled = expectAsync0(() {
           verifyCorrectRequestMetaData(request, HttpStatus.OK);
           verifyCorrectRequestContent(request,
-              '[{"id":47,"response":"dummyResponse"}]');
+              '{"responses":[{"id":47,"response":"dummyResponse"}],"authenticatedUserId":"someUserId"}');
         });
         request.response.when(callsTo('close')).alwaysCall(closeCalled);
     });
@@ -138,6 +140,7 @@ void main() {
                 ]));
         Request request = new Request('json', httpRequest.httpBody.body,
             httpRequest.response, httpRequest.headers, httpRequest, {});
+        request.authenticatedUserId = "someUserId";
 
         //when
         requestHandler.handleHttpRequest(request);
@@ -146,8 +149,8 @@ void main() {
         var closeCalled = expectAsync0(() {
           verifyCorrectRequestMetaData(request, HttpStatus.OK);
           verifyCorrectRequestContent(request,
-              '[{"id":1,"response":"dummyType1"},'
-              '{"id":2,"response":"dummyType2"}]');
+              '{"responses":[{"id":1,"response":"dummyType1"},'
+              '{"id":2,"response":"dummyType2"}],"authenticatedUserId":"someUserId"}');
           expect(orderOfExecution,equals(['firstRequest', 'secondRequest']));
         });
         request.response.when(callsTo('close')).alwaysCall(closeCalled);
@@ -169,6 +172,7 @@ void main() {
                 ]));
         Request request = new Request('json', httpRequest.httpBody.body,
             httpRequest.response, httpRequest.headers, httpRequest, {});
+        request.authenticatedUserId = "someUserId";
 
         //when
         requestHandler.handleHttpRequest(request);
@@ -177,12 +181,12 @@ void main() {
         var closeCalled = expectAsync0(() {
           verifyCorrectRequestMetaData(request, HttpStatus.OK);
           verifyCorrectRequestContent(request,
-              '[{"id":1,"response":"specificResponse"},'
-              '{"id":2,"response":"defaultResponse"}]');
+              '{"responses":[{"id":1,"response":"specificResponse"},'
+              '{"id":2,"response":"defaultResponse"}],"authenticatedUserId":"someUserId"}');
         });
         request.response.when(callsTo('close')).alwaysCall(closeCalled);
     });
-    
+
     test('Loopback connection in each request (T06).', () {
       //given
       var loopBackConnection = new MockConnection();
@@ -190,17 +194,17 @@ void main() {
         ..when(callsTo('call')).alwaysReturn(loopBackConnection);
 
       var requestHandler = new MultiRequestHandler(createLoopBackConnection);
-        
+
       var httpRequest = new MockHttpRequest(JSON.encode(
           [new PackedRequest(42, new ClientRequest('dummyType',15))]));
       Request request = new Request('json', httpRequest.httpBody.body,
           httpRequest.response, httpRequest.headers, httpRequest, {});
-      
+
       request.authenticatedUserId = '13';
-        
+
       //when
       requestHandler.handleHttpRequest(request);
-      
+
       //then
       createLoopBackConnection.getLogs(callsTo('call', requestHandler, '13'))
         .verify(happenedOnce);

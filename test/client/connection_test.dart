@@ -11,34 +11,6 @@ import 'package:clean_ajax/client.dart';
 import 'dart:async';
 import 'dart:convert';
 
-class MockRemoteHttpServer extends Mock
-{
-  Duration delay = new Duration(seconds:0);
-
-  setResponse(type, args, response) =>
-      when(callsTo('_reqToRes',equals(type),equals(args))).alwaysReturn(response);
-
-  _generateResposne(sendData) {
-    List decodedList = JSON.decode(sendData);
-    return JSON.encode(decodedList.map(
-        (request) => {'id': request['id'],
-                      'response': _reqToRes(request['clientRequest']['type'],
-                                            request['clientRequest']['args']
-                     )}
-        ).toList());
-  }
-
-  Future<Mock> send(String url, {String method, bool withCredentials,
-    String responseType, String mimeType, Map<String, String> requestHeaders,
-    sendData, void onProgress(e)})
-  {
-    var response = _generateResposne(sendData);
-    var httpRequest = new Mock();
-    httpRequest.when(callsTo('get responseText')).alwaysReturn(response);
-    return new  Future.delayed(delay,()=>httpRequest);
-  }
-
-}
 
 class TransportMock extends Mock implements Transport {
   Function prepareRequest;
@@ -57,6 +29,68 @@ class CRMock extends Mock implements ClientRequest {}
 void main() {
   group('Connection', () {
 
+
+    test('handleResponse set autheticated userId.', () {
+      // given
+      var transport = new TransportMock();
+      var connection = new Connection.config(transport);
+      var request = new CRMock();
+      var response = "response";
+      var future = connection.send(() => request);
+      var packedRequests = transport.prepareRequest();
+      var packedResponses = [{'id': packedRequests[0].id, 'response': response}];
+
+      // when
+      transport.handleResponse({'authenticatedUserId': 'someAuthenticatedUserId', 'responses': packedResponses});
+
+      // then
+      expect(connection.authenticatedUserId, equals('someAuthenticatedUserId'));
+    });
+
+    solo_test('handleResponse adds to stream on AuthenticatedUserIdChange.', () {
+      // given
+      var transport = new TransportMock();
+      var connection = new Connection.config(transport);
+      var request = new CRMock();
+      var response = "response";
+      var future = connection.send(() => request);
+      var packedRequests = transport.prepareRequest();
+      var packedResponses = [{'id': packedRequests[0].id, 'response': response}];
+
+      var listenOnFirstAuthenticatedUserIdChange = connection.onAuthenticatedUserIdChange.first;
+
+      // when
+      transport.handleResponse({'authenticatedUserId': 'someAuthenticatedUserId', 'responses': packedResponses});
+
+     //then
+      expect(listenOnFirstAuthenticatedUserIdChange, completion('someAuthenticatedUserId'));
+
+    });
+
+    test("handleResponse with same authenticatedUserId don't adds to stream onAuthenticatedUserIdChange.", () {
+      // given
+      var transport = new TransportMock();
+      var connection = new Connection.config(transport);
+      var request = new CRMock();
+      var response = "response";
+      var future = connection.send(() => request);
+      var packedRequests = transport.prepareRequest();
+      var packedResponses = [{'id': packedRequests[0].id, 'response': response}];
+
+      Future handle() {
+        transport.handleResponse({'authenticatedUserId': 'someAuthenticatedUserId', 'responses': packedResponses});
+        return new Future.delayed(new Duration(seconds:0));
+      }
+
+      // then
+      Future ll = handle().then((_) {connection.onAuthenticatedUserIdChange.listen((protectAsync1((_)
+          {expect(true, isFalse, reason: 'Should not be reached');})));});
+
+      // when
+      return Future.wait([ll.then((_) {transport.handleResponse({'authenticatedUserId': 'someAuthenticatedUserId', 'responses': packedResponses});})]);
+
+    });
+
     test('notify transport on send.', () {
       // given
       var transport = new TransportMock();
@@ -68,6 +102,7 @@ void main() {
       // then
       transport.getLogs(callsTo('markDirty')).verify(happenedOnce);
     });
+
 
     test('notify transport on sendPeriodically.', () {
       // given
@@ -160,7 +195,7 @@ void main() {
       }
 
       // when
-      transport.handleResponse(packedResponses);
+      transport.handleResponse({'authenticatedUserId': '', 'responses': packedResponses});
 
       // then
       for (var i = 0; i < futures.length; i++) {
@@ -199,12 +234,12 @@ void main() {
         var packedRequests1 = transport.prepareRequest();
         var packedResponses = [];
         packedResponses.add({'id': packedRequests1[0].id, 'response': 'response'});
-        transport.handleResponse(packedResponses);
+        transport.handleResponse({'authenticatedUserId': '', 'responses': packedResponses});
       }).then((_) {
         var packedRequests2 = transport.prepareRequest();
         var packedResponses = [];
         packedResponses.add({'id': packedRequests2[0].id, 'response': 'response'});
-        transport.handleResponse(packedResponses);
+        transport.handleResponse({'authenticatedUserId': '', 'responses': packedResponses});
       });
 
       // then
@@ -382,7 +417,7 @@ void main() {
 
           // then
           expectAsync1((receivedResponse) {
-            expect(receivedResponse, equals(response));
+            expect(receivedResponse, equals({'responses':response, 'authenticatedUserId': authenticatedUserId}));
           }
 
       ), null);
