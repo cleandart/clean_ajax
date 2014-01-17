@@ -106,6 +106,16 @@ typedef ClientRequest CreateRequest();
  */
 class Connection {
 
+
+  String _authenticatedUserId;
+
+  String get authenticatedUserId => _authenticatedUserId;
+
+  final StreamController<String> _onAuthenticatedUserIdChangeController =
+      new StreamController.broadcast();
+
+  Stream<String> get onAuthenticatedUserIdChange => _onAuthenticatedUserIdChangeController.stream;
+
   final Transport _transport;
 
   /**
@@ -157,8 +167,14 @@ class Connection {
     return request_list;
   }
 
-  void _handleResponse(List responses) {
-    for (var responseMap in responses) {
+//  void _handleResponse(List responses) {
+  void _handleResponse(Map responsesAndAuthUser) {
+    String newAuthUserId = responsesAndAuthUser['authenticatedUserId'];
+    if (_authenticatedUserId != newAuthUserId) {
+      _onAuthenticatedUserIdChangeController.add(newAuthUserId);
+      _authenticatedUserId = newAuthUserId;
+    }
+    for (var responseMap in responsesAndAuthUser['responses']) {
       var id = responseMap['id'];
       var response = responseMap['response'];
       if (_responseMap.containsKey(id)) {
@@ -387,7 +403,7 @@ class LoopBackTransport extends Transport {
 
     _sendLoopBackRequest(_prepareRequest(), _authenticatedUserId)
     .then((response) {
-      _handleResponse(response);
+      _handleResponse({'responses': response, 'authenticatedUserId': _authenticatedUserId});
       _closeRequest();
     }).catchError((e) => _handleError(new FailedRequestException()));
 
