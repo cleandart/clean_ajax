@@ -117,6 +117,45 @@ void main() {
 
     });
 
+    test('after adding only null requests is packedRequests empty.', () {
+      // given
+      var transport = new TransportMock();
+      var connection = new Connection.config(transport);
+      List requests = [null, null];
+
+      // when
+      for (var request in requests) {
+        connection.send(() => request).catchError(
+            expectAsync1((e) => expect(e, new isInstanceOf<CancelError>())));
+      }
+
+      // then
+      List packedRequests = transport.prepareRequest();
+      expect(packedRequests.isEmpty, isTrue);
+
+    });
+
+    test('adds only not null requests.', () {
+      // given
+      var transport = new TransportMock();
+      var connection = new Connection.config(transport);
+      var requests = [null, new CRMock()];
+
+      // when
+      for (var request in requests) {
+        if(request == null) connection.send(() => request)
+          .catchError(expectAsync1((e) => expect(e, new isInstanceOf<CancelError>())));
+        else connection.send(() => request);
+      }
+
+      // then
+      List packedRequests = transport.prepareRequest();
+
+      expect(packedRequests.length, equals(1));
+      expect(packedRequests.first.clientRequest, equals(requests[1]));
+
+    });
+
     test('send requests in order.', () {
       // given
       var transport = new TransportMock();
