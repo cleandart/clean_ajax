@@ -111,10 +111,10 @@ class Connection {
 
   String get authenticatedUserId => _authenticatedUserId;
 
-  final StreamController<String> _onAuthenticationUserIdChangeController =
+  final StreamController<String> _onAuthenticatedUserIdChangeController =
       new StreamController.broadcast();
 
-  Stream<String> get onAuthenticationUserIdChange => _onAuthenticationUserIdChangeController.stream;
+  Stream<String> get onAuthenticatedUserIdChange => _onAuthenticatedUserIdChangeController.stream;
 
   final Transport _transport;
 
@@ -171,7 +171,7 @@ class Connection {
   void _handleResponse(Map responsesAndAuthUser) {
     String newAuthUserId = responsesAndAuthUser['authenticatedUserId'];
     if (_authenticatedUserId != newAuthUserId) {
-      _onAuthenticationUserIdChangeController.add(newAuthUserId);
+      _onAuthenticatedUserIdChangeController.add(newAuthUserId);
       _authenticatedUserId = newAuthUserId;
     }
     for (var responseMap in responsesAndAuthUser['responses']) {

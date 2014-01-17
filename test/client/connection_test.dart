@@ -11,34 +11,6 @@ import 'package:clean_ajax/client.dart';
 import 'dart:async';
 import 'dart:convert';
 
-class MockRemoteHttpServer extends Mock
-{
-  Duration delay = new Duration(seconds:0);
-
-  setResponse(type, args, response) =>
-      when(callsTo('_reqToRes',equals(type),equals(args))).alwaysReturn(response);
-
-  _generateResposne(sendData) {
-    List decodedList = JSON.decode(sendData);
-    return JSON.encode({'authenticatedUserId': 'someAuthenticatedId', 'responses': decodedList.map(
-        (request) => {'id': request['id'],
-                      'response': _reqToRes(request['clientRequest']['type'],
-                                            request['clientRequest']['args']
-                     )}
-        ).toList()});
-  }
-
-  Future<Mock> send(String url, {String method, bool withCredentials,
-    String responseType, String mimeType, Map<String, String> requestHeaders,
-    sendData, void onProgress(e)})
-  {
-    var response = _generateResposne(sendData);
-    var httpRequest = new Mock();
-    httpRequest.when(callsTo('get responseText')).alwaysReturn(response);
-    return new  Future.delayed(delay,()=>httpRequest);
-  }
-
-}
 
 class TransportMock extends Mock implements Transport {
   Function prepareRequest;
@@ -75,7 +47,7 @@ void main() {
       expect(connection.authenticatedUserId, equals('someAuthenticatedUserId'));
     });
 
-    test('handleResponse adds to stream on AuthenticatedUserIdChange.', () {
+    solo_test('handleResponse adds to stream on AuthenticatedUserIdChange.', () {
       // given
       var transport = new TransportMock();
       var connection = new Connection.config(transport);
@@ -85,16 +57,13 @@ void main() {
       var packedRequests = transport.prepareRequest();
       var packedResponses = [{'id': packedRequests[0].id, 'response': response}];
 
-      Completer c=new Completer();
-      connection.onAuthenticationUserIdChange.listen((_) =>c.complete(_));
+      var listenOnFirstAuthenticatedUserIdChange = connection.onAuthenticatedUserIdChange.first;
 
       // when
       transport.handleResponse({'authenticatedUserId': 'someAuthenticatedUserId', 'responses': packedResponses});
 
-
-
-    //then
-      expect(c.future, completion('someAuthenticatedUserId'));
+     //then
+      expect(listenOnFirstAuthenticatedUserIdChange, completion('someAuthenticatedUserId'));
 
     });
 
@@ -114,7 +83,7 @@ void main() {
       }
 
       // then
-      Future ll = handle().then((_) {connection.onAuthenticationUserIdChange.listen((protectAsync1((_)
+      Future ll = handle().then((_) {connection.onAuthenticatedUserIdChange.listen((protectAsync1((_)
           {expect(true, isFalse, reason: 'Should not be reached');})));});
 
       // when
