@@ -12,6 +12,7 @@ import "dart:core";
 import "dart:async";
 import "dart:convert";
 import 'dart:io';
+import 'package:logging/logging.dart';
 import 'package:http_server/http_server.dart';
 import 'package:clean_backend/clean_backend.dart' show Request;
 
@@ -19,6 +20,8 @@ import 'package:clean_backend/clean_backend.dart' show Request;
 import 'common.dart';
 import 'client_backend.dart';
 
+
+Logger logger = new Logger('clean_ajax');
 /**
  * Type of handler which can be registered in [MultiRequestHandler] for
  * processing [ServerRequest]
@@ -152,7 +155,11 @@ class MultiRequestHandler {
                        responses.add({'id': request.id, 'response': response});
                  });
              }
-           ).then((_)=>new Future.value(responses));
+           ).then((_) => new Future.value(responses)).
+             catchError((e, s) {
+               logger.shout('Exception during request processing: $e \n $s');
+               throw e;
+           });
   }
 
   /**

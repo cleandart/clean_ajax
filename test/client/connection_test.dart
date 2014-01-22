@@ -47,7 +47,7 @@ void main() {
       expect(connection.authenticatedUserId, equals('someAuthenticatedUserId'));
     });
 
-    solo_test('handleResponse adds to stream on AuthenticatedUserIdChange.', () {
+    test('handleResponse adds to stream on AuthenticatedUserIdChange.', () {
       // given
       var transport = new TransportMock();
       var connection = new Connection.config(transport);
