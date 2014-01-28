@@ -399,7 +399,7 @@ void main() {
   });
 
   group('LoopBackTransport', () {
-    test('send packedRequests.', () {
+    test('send packedRequests encoded in JSON.', () {
       // given
       var response = [{"id": 1}, {"id": 2}];
       var authenticatedUserId = new Mock();
@@ -427,7 +427,7 @@ void main() {
 
       // then
       sendLoopBackRequest.getLogs(
-          callsTo('call', packedRequests, authenticatedUserId))
+          callsTo('call', JSON.encode(packedRequests), authenticatedUserId))
             .verify(happenedOnce);
     });
 
@@ -439,7 +439,7 @@ void main() {
       var packedRequests = [{"packedId": 1}, {"packedId": 2}];
 
       var transport = new LoopBackTransport(
-          (List<PackedRequest> requests, authenticatedUserId) => sendLoopBackRequest(requests)
+          (String requests, authenticatedUserId) => sendLoopBackRequest(requests)
       );
 
       // when

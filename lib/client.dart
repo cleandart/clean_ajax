@@ -410,7 +410,7 @@ class LoopBackTransport extends Transport {
 
     _openRequest();
 
-    _sendLoopBackRequest(_prepareRequest(), _authenticatedUserId)
+    _sendLoopBackRequest(JSON.encode(_prepareRequest()), _authenticatedUserId)
     .then((response) {
       _handleResponse({'responses': response, 'authenticatedUserId': _authenticatedUserId});
       _closeRequest();
