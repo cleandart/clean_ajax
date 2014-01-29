@@ -120,9 +120,9 @@ class MultiRequestHandler {
       }, test: (e) => e is UnknownHandlerException);
   }
 
-  Future<List> handleLoopBackRequest(List<PackedRequest> requests,
+  Future<List> handleLoopBackRequest(String requests,
                                      authenticatedUserId) {
-    return _splitAndProcessRequests(requests, authenticatedUserId);
+    return _splitAndProcessRequests(packedRequestsFromJson(JSON.decode(requests)), authenticatedUserId);
   }
 
   /**
