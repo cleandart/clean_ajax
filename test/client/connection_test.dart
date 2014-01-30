@@ -385,7 +385,7 @@ void main() {
 
       var packedRequests = [{"packedId": 1}, {"packedId": 2}];
       var transport = new HttpTransport(sendHttpRequest, "url",
-          new Duration(milliseconds: 1));
+          new Duration(milliseconds: 1000));
 
       // when
       transport.setHandlers(() => packedRequests, null,

@@ -349,7 +349,10 @@ class HttpTransport extends Transport {
     ).then((xhr) {
         _handleResponse(JSON.decode(xhr.responseText));
         _closeRequest();
-    }).catchError((e) => _handleError(new FailedRequestException()));
+    }).catchError((e) {
+      _handleError(new FailedRequestException());
+      _closeRequest();
+    });
   }
 }
 /**
@@ -418,4 +421,3 @@ class LoopBackTransport extends Transport {
 
   }
 }
-
