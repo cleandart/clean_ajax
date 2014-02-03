@@ -15,8 +15,20 @@ import 'package:clean_router/common.dart';
 // Don't run example_client.dart nor index.html instead run example_server.dart and go
 // in dartium to address 0.0.0.0:8080
 
+var requestCount = 0;
+
 Future simpleServerRequestHandler(ServerRequest request) {
-  return new Future.value(request.args);
+  print("Simple request received");
+  if ((requestCount++ / 3).toInt() % 2 == 0)
+    return new Future.value(request.args);
+  else return new Future.delayed(new Duration(milliseconds: 500), () => request.args);
+}
+
+Future pingRequestHandler(ServerRequest request) {
+  print("Ping request received");
+  if ((requestCount++ / 3).toInt() % 2 == 0)
+    return new Future.value(request.args);
+  else return new Future.delayed(new Duration(milliseconds: 500), () => request.args);
 }
 
 void main() {
@@ -26,15 +38,8 @@ void main() {
 
   Connection connection = createLoopBackConnection(requestHandler);
 
-  for (int i=0; i<10; i++) {
-    connection.send(()=>new ClientRequest('dummyType','request$i')).then(
-        (response) => print(response)
-    );
-  }
-
   Backend.bind([], new SHA256()).then((backend) {
     backend.addDefaultHttpHeader('Access-Control-Allow-Origin','*');
-    backend.addDefaultHttpHeader('Access-Control-Allow-Headers','*');
     backend.addRoute('resources', new Route('/resources/'));
     backend.addRoute('static', new Route('/*'));
     backend.addView('resources', requestHandler.handleHttpRequest);

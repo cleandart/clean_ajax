@@ -7,9 +7,9 @@
  */
 library clean_ajax.client_browser;
 
-import "dart:html";
 import 'client.dart';
 export 'client.dart';
+import 'http_request.dart';
 
 /**
  * Create new [Connection] based on ajax polling.
@@ -17,7 +17,7 @@ export 'client.dart';
  * Expects [MultiRequestHandler] listening server side on the [url].
  * Polling interval can be configured by [delayBetweenRequests].
  */
-Connection createHttpConnection(url, Duration delayBetweenRequests) =>
+Connection createHttpConnection(url, Duration delayBetweenRequests, [int timeout = null]) =>
   new Connection.config(
-      new HttpTransport(HttpRequest.request, url, delayBetweenRequests)
+      new HttpTransport(sendHttpRequest, url, delayBetweenRequests, timeout)
   );

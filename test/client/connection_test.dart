@@ -16,11 +16,15 @@ class TransportMock extends Mock implements Transport {
   Function prepareRequest;
   Function handleResponse;
   Function handleError;
+  Function handleDisconnect;
+  Function handleReconnect;
 
-  setHandlers(prepareRequest, handleResponse, handleError) {
+  setHandlers(prepareRequest, handleResponse, handleError, [handleDisconnect = null, handleReconnect = null]) {
     this.prepareRequest = prepareRequest;
     this.handleResponse = handleResponse;
     this.handleError = handleError;
+    this.handleDisconnect = handleDisconnect == null ? (){} : handleDisconnect;
+    this.handleReconnect = handleReconnect == null ? (){} : handleReconnect;
   }
 }
 
@@ -371,6 +375,7 @@ void main() {
       // then
       return new Future.delayed(new Duration(milliseconds: 10), () {
         expect(sendHttpRequest.verifyZeroInteractions(), isTrue);
+        transport.dispose();
       });
 
 
@@ -392,9 +397,84 @@ void main() {
           expectAsync1((e) {
             // then
             expect(e, new isInstanceOf<FailedRequestException>("FailedRequestException"));
+            transport.dispose();
           })
       );
 
+    });
+    group('Reconnect', () {
+      test('Disconnect triggered at Transport level.', () {
+        // given
+        var sendHttpRequest = new Mock()
+        ..when(callsTo('call')).alwaysCall(
+            (url) => new Future.error(new ConnectionError(new Mock()))
+        );
+
+        var packedRequests = [{"packedId": 1}, {"packedId": 2}];
+        var transport = new HttpTransport(sendHttpRequest, "url",
+            new Duration(milliseconds: 1000));
+
+        // when
+        transport.setHandlers(() => packedRequests, null,
+            expectAsync1((e) {
+              // then
+              expect(e, new isInstanceOf<ConnectionError>());
+              transport.dispose();
+            })
+        );
+      });
+      test('Disconnect propagated.', () {
+        //given
+        var sendHttpRequest = new Mock()
+        ..when(callsTo('call')).alwaysCall(
+            (url) => new Future.error(new ConnectionError(new Mock()))
+        );
+
+        var packedRequests = [{"packedId": 1}, {"packedId": 2}];
+        var transport = new HttpTransport(sendHttpRequest, "url",
+            new Duration(milliseconds: 100));
+        var sentCount = 0;
+        Function getRequests = () {
+          if (sentCount == 0) return packedRequests;
+          else return [];
+        };
+
+        // when
+        transport.setHandlers(() => packedRequests, null,
+            expectAsync1((e) {
+              // then
+              expect(e, new isInstanceOf<ConnectionError>());
+            }), expectAsync0(() {transport.dispose();})
+        );
+      });
+      test('Reconnect propagated.', () {
+        //given
+        var sendHttpRequest = new Mock()
+        ..when(callsTo('call')).alwaysCall(
+            (url) => new Future.error(new ConnectionError(new Mock()))
+        );
+
+        var packedRequests = [{"packedId": 1}, {"packedId": 2}];
+        var transport = new HttpTransport(sendHttpRequest, "url",
+            new Duration(milliseconds: 10));
+        var sentCount = 0;
+        Function getRequests = () {
+          if (sentCount++ == 0) return packedRequests;
+          else return [];
+        };
+
+        // when
+        transport.setHandlers(getRequests, null,
+            expectAsync1((e) {
+              // then
+              expect(e, new isInstanceOf<ConnectionError>());
+              sendHttpRequest.resetBehavior();
+              sendHttpRequest.when(callsTo('call')).alwaysCall(
+                (url) => new Future.value(null)
+              );
+            }), expectAsync0(() {}), expectAsync0(() {transport.dispose();})
+        );
+      });
     });
   });
 
@@ -490,6 +570,7 @@ void main() {
         sendHttpRequest.getLogs(
             callsTo('call', 'url', 'POST', {'Content-Type': 'application/json'},
                     JSON.encode(packedRequests))).verify(happenedOnce);
+        transport.dispose();
       });
     });
     // then

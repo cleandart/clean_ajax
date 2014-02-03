@@ -104,6 +104,16 @@ class CancelError implements Exception {
   String toString() => "CancelError";
 }
 
+class ConnectionError extends Error {
+  var event;
+  ConnectionError(this.event);
+}
+
+class ResponseError extends Error {
+  var event;
+  ResponseError(this.event);
+}
+
 typedef ClientRequest CreateRequest();
 
 /**
@@ -111,6 +121,30 @@ typedef ClientRequest CreateRequest();
  */
 class Connection {
 
+  /**
+   * Flag which marks whether there are problems with connection or no.
+   * If this is false, automatic checker starts sending requests and when
+   * a response arrives, then it is set back to true.
+   */
+  bool _connected = true;
+
+  bool get isConnected => _connected;
+
+  StreamController _onDisconnectedController = new StreamController.broadcast();
+  StreamController _onConnectedController = new StreamController.broadcast();
+
+  Stream get onDisconnected => _onDisconnectedController.stream;
+  Stream get onConnected => _onConnectedController.stream;
+
+  void _disconnect() {
+    _connected = false;
+    _onDisconnectedController.add(null);
+  }
+
+  void _reconnect() {
+    _connected = true;
+    _onConnectedController.add(null);
+  }
 
   String _authenticatedUserId;
 
@@ -131,7 +165,7 @@ class Connection {
    * [clean_ajax.client_backend] libraries.
    */
   Connection.config(this._transport) {
-    this._transport.setHandlers(_prepareRequest, _handleResponse, _handleError);
+    this._transport.setHandlers(_prepareRequest, _handleResponse, _handleError, _disconnect, _reconnect);
   }
 
   /**
@@ -200,6 +234,7 @@ class Connection {
     for (var completer in _responseMap.values) {
       completer.completeError(new FailedRequestException());
     }
+    _responseMap.clear();
   }
 
   /**
@@ -254,11 +289,15 @@ abstract class Transport {
   dynamic _prepareRequest;
   dynamic _handleResponse;
   dynamic _handleError;
+  dynamic _reconnectConnection;
+  dynamic _disconnectConnection;
 
-  setHandlers(prepareRequest, handleResponse, handleError) {
+  setHandlers(prepareRequest, handleResponse, handleError, [handleDisconnect = null, handleReconnect = null]) {
     _prepareRequest = prepareRequest;
     _handleResponse = handleResponse;
     _handleError = handleError;
+    _disconnectConnection = handleDisconnect == null ? (){} : handleDisconnect;
+    _reconnectConnection = handleReconnect == null ? (){} : handleReconnect;
   }
 
   void markDirty();
@@ -292,11 +331,29 @@ class HttpTransport extends Transport {
 
   Timer _timer;
 
-  HttpTransport(this._sendHttpRequest, this._url, this._delayBetweenRequests);
+  bool _connected = true;
 
+  void _disconnect() {
+    _connected = false;
+    _disconnectConnection();
+  }
 
-  setHandlers(prepareRequest, handleResponse, handleError) {
-    super.setHandlers(prepareRequest, handleResponse, handleError);
+  void _reconnect() {
+    _connected = true;
+    _reconnectConnection();
+  }
+
+  HttpTransport(this._sendHttpRequest, this._url, this._delayBetweenRequests, [this._timeout = null]);
+
+  /**
+   * Seconds after which request is declared as timed-out. Optional parameter.
+   * Use only with HttpRequest factories which support it. (Like the one in http_request.dart)
+   */
+  int _timeout;
+  int get timeout => _timeout;
+
+  setHandlers(prepareRequest, handleResponse, handleError, [handleDisconnect = null, handleReconnect = null]) {
+    super.setHandlers(prepareRequest, handleResponse, handleError, handleDisconnect, handleReconnect);
     _timer = new Timer.periodic(this._delayBetweenRequests, (_) => _performRequest());
   }
 
@@ -316,7 +373,7 @@ class HttpTransport extends Transport {
     if(_timer != null) _timer.cancel();
   }
 
-  bool _shouldSendHttpRequest() => !_isRunning;
+  bool _shouldSendHttpRequest() => !_isRunning && _connected;
 
   void _openRequest() {
     _isRunning = true;
@@ -324,6 +381,25 @@ class HttpTransport extends Transport {
 
   void _closeRequest() {
     _isRunning = false;
+  }
+
+  Future _buildRequest(data) {
+    if (null == _timeout) {
+      return _sendHttpRequest(
+          _url,
+          method: 'POST',
+          requestHeaders: {'Content-Type': 'application/json'},
+          sendData: JSON.encode(data)
+      );
+    } else {
+      return _sendHttpRequest(
+          _url,
+          method: 'POST',
+          requestHeaders: {'Content-Type': 'application/json'},
+          sendData: JSON.encode(data),
+          timeout: _timeout
+      );
+    }
   }
 
   /**
@@ -334,6 +410,11 @@ class HttpTransport extends Transport {
    * [_delayBetweenRequests].
    */
   void _performRequest() {
+    if (_connected) _sendDataRequest();
+    else _sendPingRequest();
+  }
+
+  void _sendDataRequest() {
     if (!_shouldSendHttpRequest()) {
       return;
     }
@@ -341,16 +422,30 @@ class HttpTransport extends Transport {
     if (data.isEmpty) return;
 
     _openRequest();
-    _sendHttpRequest(
-        _url,
-        method: 'POST',
-        requestHeaders: {'Content-Type': 'application/json'},
-        sendData: JSON.encode(data)
-    ).then((xhr) {
+    _buildRequest(data).then((xhr) {
         _handleResponse(JSON.decode(xhr.responseText));
         _closeRequest();
     }).catchError((e) {
-      _handleError(new FailedRequestException());
+      if (e is ConnectionError) {
+        _handleError(e);
+        _disconnect();
+      } else {
+        _handleError(new FailedRequestException());
+      }
+      _closeRequest();
+    });
+  }
+
+  void _sendPingRequest() {
+    _openRequest();
+    _buildRequest([new PackedRequest(0, new ClientRequest('pingRequest', "ping"))]).then((xhr) {
+      _reconnect();
+      _closeRequest();
+    }).catchError((e) {
+      if (e is ConnectionError) {
+      } else {
+        _reconnect();
+      }
       _closeRequest();
     });
   }
