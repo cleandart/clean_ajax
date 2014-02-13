@@ -79,7 +79,7 @@ class MultiRequestHandler {
   final _createLoopBackConnection;
 
   MultiRequestHandler([this._createLoopBackConnection = createLoopBackConnection]) {
-    this.registerHandler("pingRequest", (_) => new Future.value("pong"));
+    this.registerHandler("ping", (_) => new Future.value("pong"));
   }
 
   /**

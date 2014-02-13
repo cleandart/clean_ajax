@@ -12,20 +12,14 @@ import 'package:crypto/crypto.dart';
 import 'package:clean_router/common.dart';
 
 
-// Don't run example_client.dart nor index.html instead run example_server.dart and go
-// in dartium to address 0.0.0.0:8080
+// Don't run example_client.dart nor index.html instead run example_server.dart
+// (working directory should be set to the directory containing this script) and navigate
+// dartium to the address 0.0.0.0:8080/index.html
 
 var requestCount = 0;
 
 Future simpleServerRequestHandler(ServerRequest request) {
   print("Simple request received");
-  if ((requestCount++ / 3).toInt() % 2 == 0)
-    return new Future.value(request.args);
-  else return new Future.delayed(new Duration(milliseconds: 500), () => request.args);
-}
-
-Future pingRequestHandler(ServerRequest request) {
-  print("Ping request received");
   if ((requestCount++ / 3).toInt() % 2 == 0)
     return new Future.value(request.args);
   else return new Future.delayed(new Duration(milliseconds: 500), () => request.args);

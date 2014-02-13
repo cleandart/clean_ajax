@@ -232,7 +232,7 @@ class Connection {
 
   void _handleError(error) {
     for (var completer in _responseMap.values) {
-      completer.completeError(new FailedRequestException());
+      completer.completeError(error);
     }
     _responseMap.clear();
   }
@@ -438,7 +438,7 @@ class HttpTransport extends Transport {
 
   void _sendPingRequest() {
     _openRequest();
-    _buildRequest([new PackedRequest(0, new ClientRequest('pingRequest', "ping"))]).then((xhr) {
+    _buildRequest([new PackedRequest(0, new ClientRequest('ping', 'ping'))]).then((xhr) {
       _reconnect();
       _closeRequest();
     }).catchError((e) {

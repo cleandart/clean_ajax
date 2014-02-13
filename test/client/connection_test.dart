@@ -279,7 +279,7 @@ void main() {
     test('complete send with error.', () {
       // given
       var transport = new TransportMock();
-      var error = new Mock();
+      var error = new FailedRequestException();
       var connection = new Connection.config(transport);
       var request1 = connection.send(() => new CRMock());
       var request2 = connection.send(() => new CRMock());
@@ -296,7 +296,7 @@ void main() {
     test('complete sendPeriodically with error.', () {
       // given
       var transport = new TransportMock();
-      var error = new Mock();
+      var error = new FailedRequestException();
       var connection = new Connection.config(transport);
       var request = connection.sendPeriodically(() => new CRMock());
       transport.prepareRequest();
@@ -307,7 +307,7 @@ void main() {
       // then
 
       var subscription = request.listen(null);
-      subscription.onError(expectAsync1((e) {
+      subscription.onError(expectAsync((e) {
         expect(e, new isInstanceOf<FailedRequestException>("FailedRequestException"));
         subscription.cancel();
       }));
@@ -345,7 +345,7 @@ void main() {
       transport.setHandlers(getPackedRequests,
 
           // then
-          expectAsync1((receivedResponse) {
+          expectAsync((receivedResponse) {
             expect(receivedResponse, equals(response));
             transport.dispose();
           }
@@ -394,7 +394,7 @@ void main() {
 
       // when
       transport.setHandlers(() => packedRequests, null,
-          expectAsync1((e) {
+          expectAsync((e) {
             // then
             expect(e, new isInstanceOf<FailedRequestException>("FailedRequestException"));
             transport.dispose();
@@ -416,7 +416,7 @@ void main() {
 
         // when
         transport.setHandlers(() => packedRequests, null,
-            expectAsync1((e) {
+            expectAsync((e) {
               // then
               expect(e, new isInstanceOf<ConnectionError>());
               transport.dispose();
@@ -441,10 +441,10 @@ void main() {
 
         // when
         transport.setHandlers(() => packedRequests, null,
-            expectAsync1((e) {
+            expectAsync((e) {
               // then
               expect(e, new isInstanceOf<ConnectionError>());
-            }), expectAsync0(() {transport.dispose();})
+            }), expectAsync(() {transport.dispose();})
         );
       });
       test('Reconnect propagated.', () {
@@ -465,14 +465,14 @@ void main() {
 
         // when
         transport.setHandlers(getRequests, null,
-            expectAsync1((e) {
+            expectAsync((e) {
               // then
               expect(e, new isInstanceOf<ConnectionError>());
               sendHttpRequest.resetBehavior();
               sendHttpRequest.when(callsTo('call')).alwaysCall(
                 (url) => new Future.value(null)
               );
-            }), expectAsync0(() {}), expectAsync0(() {transport.dispose();})
+            }), expectAsync(() {}), expectAsync(() {transport.dispose();})
         );
       });
     });
@@ -496,7 +496,7 @@ void main() {
       transport.setHandlers(() => packedRequests,
 
           // then
-          expectAsync1((receivedResponse) {
+          expectAsync((receivedResponse) {
             expect(receivedResponse, equals({'responses':response, 'authenticatedUserId': authenticatedUserId}));
           }
 
@@ -524,7 +524,7 @@ void main() {
 
       // when
       transport.setHandlers(() => packedRequests, null,
-          expectAsync1((e) {
+          expectAsync((e) {
             // then
             expect(e, new isInstanceOf<FailedRequestException>("FailedRequestException"));
           })
@@ -556,7 +556,7 @@ void main() {
     transport.setHandlers(() => packedRequests,
 
         // then
-        expectAsync1((receivedResponse) {
+        expectAsync((receivedResponse) {
           expect(receivedResponse, equals(response));
         },
         count: 1, max: 1
