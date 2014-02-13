@@ -2,4 +2,5 @@ packages
 .buildlog
 lib/docs/
 pubspec.lock
+local_pubspec_yaml
 .idea
