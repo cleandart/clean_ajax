@@ -84,11 +84,13 @@ import "dart:core";
 import "dart:async";
 import "dart:collection";
 import "dart:convert";
+import "package:logging/logging.dart";
 
 import 'common.dart';
 
 export 'common.dart' show ClientRequest;
 
+final logger = new Logger('clean_ajax');
 
 /**
  * Exception thrown when the server does not respond to request or responds
@@ -425,11 +427,12 @@ class HttpTransport extends Transport {
     _buildRequest(data).then((xhr) {
         _handleResponse(JSON.decode(xhr.responseText));
         _closeRequest();
-    }).catchError((e) {
+    }).catchError((e, s) {
       if (e is ConnectionError) {
         _handleError(e);
         _disconnect();
       } else {
+        logger.shout("error", e, s);
         _handleError(new FailedRequestException());
       }
       _closeRequest();
