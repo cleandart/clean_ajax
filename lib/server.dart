@@ -78,7 +78,9 @@ class MultiRequestHandler {
 
   final _createLoopBackConnection;
 
-  MultiRequestHandler([this._createLoopBackConnection = createLoopBackConnection]);
+  MultiRequestHandler([this._createLoopBackConnection = createLoopBackConnection]) {
+    this.registerHandler("ping", (_) => new Future.value("pong"));
+  }
 
   /**
    * List of handlers for [ClientRequest]. Index is matching with

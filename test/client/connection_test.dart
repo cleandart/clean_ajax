@@ -16,11 +16,15 @@ class TransportMock extends Mock implements Transport {
   Function prepareRequest;
   Function handleResponse;
   Function handleError;
+  Function handleDisconnect;
+  Function handleReconnect;
 
-  setHandlers(prepareRequest, handleResponse, handleError) {
+  setHandlers(prepareRequest, handleResponse, handleError, [handleDisconnect = null, handleReconnect = null]) {
     this.prepareRequest = prepareRequest;
     this.handleResponse = handleResponse;
     this.handleError = handleError;
+    this.handleDisconnect = handleDisconnect == null ? (){} : handleDisconnect;
+    this.handleReconnect = handleReconnect == null ? (){} : handleReconnect;
   }
 }
 
@@ -275,7 +279,7 @@ void main() {
     test('complete send with error.', () {
       // given
       var transport = new TransportMock();
-      var error = new Mock();
+      var error = new FailedRequestException();
       var connection = new Connection.config(transport);
       var request1 = connection.send(() => new CRMock());
       var request2 = connection.send(() => new CRMock());
@@ -292,7 +296,7 @@ void main() {
     test('complete sendPeriodically with error.', () {
       // given
       var transport = new TransportMock();
-      var error = new Mock();
+      var error = new FailedRequestException();
       var connection = new Connection.config(transport);
       var request = connection.sendPeriodically(() => new CRMock());
       transport.prepareRequest();
@@ -303,7 +307,7 @@ void main() {
       // then
 
       var subscription = request.listen(null);
-      subscription.onError(expectAsync1((e) {
+      subscription.onError(expectAsync((e) {
         expect(e, new isInstanceOf<FailedRequestException>("FailedRequestException"));
         subscription.cancel();
       }));
@@ -341,7 +345,7 @@ void main() {
       transport.setHandlers(getPackedRequests,
 
           // then
-          expectAsync1((receivedResponse) {
+          expectAsync((receivedResponse) {
             expect(receivedResponse, equals(response));
             transport.dispose();
           }
@@ -371,6 +375,7 @@ void main() {
       // then
       return new Future.delayed(new Duration(milliseconds: 10), () {
         expect(sendHttpRequest.verifyZeroInteractions(), isTrue);
+        transport.dispose();
       });
 
 
@@ -385,16 +390,91 @@ void main() {
 
       var packedRequests = [{"packedId": 1}, {"packedId": 2}];
       var transport = new HttpTransport(sendHttpRequest, "url",
-          new Duration(milliseconds: 1));
+          new Duration(milliseconds: 1000));
 
       // when
       transport.setHandlers(() => packedRequests, null,
-          expectAsync1((e) {
+          expectAsync((e) {
             // then
             expect(e, new isInstanceOf<FailedRequestException>("FailedRequestException"));
+            transport.dispose();
           })
       );
 
+    });
+    group('Reconnect', () {
+      test('Disconnect triggered at Transport level.', () {
+        // given
+        var sendHttpRequest = new Mock()
+        ..when(callsTo('call')).alwaysCall(
+            (url) => new Future.error(new ConnectionError(new Mock()))
+        );
+
+        var packedRequests = [{"packedId": 1}, {"packedId": 2}];
+        var transport = new HttpTransport(sendHttpRequest, "url",
+            new Duration(milliseconds: 1000));
+
+        // when
+        transport.setHandlers(() => packedRequests, null,
+            expectAsync((e) {
+              // then
+              expect(e, new isInstanceOf<ConnectionError>());
+              transport.dispose();
+            })
+        );
+      });
+      test('Disconnect propagated.', () {
+        //given
+        var sendHttpRequest = new Mock()
+        ..when(callsTo('call')).alwaysCall(
+            (url) => new Future.error(new ConnectionError(new Mock()))
+        );
+
+        var packedRequests = [{"packedId": 1}, {"packedId": 2}];
+        var transport = new HttpTransport(sendHttpRequest, "url",
+            new Duration(milliseconds: 100));
+        var sentCount = 0;
+        Function getRequests = () {
+          if (sentCount == 0) return packedRequests;
+          else return [];
+        };
+
+        // when
+        transport.setHandlers(() => packedRequests, null,
+            expectAsync((e) {
+              // then
+              expect(e, new isInstanceOf<ConnectionError>());
+            }), expectAsync(() {transport.dispose();})
+        );
+      });
+      test('Reconnect propagated.', () {
+        //given
+        var sendHttpRequest = new Mock()
+        ..when(callsTo('call')).alwaysCall(
+            (url) => new Future.error(new ConnectionError(new Mock()))
+        );
+
+        var packedRequests = [{"packedId": 1}, {"packedId": 2}];
+        var transport = new HttpTransport(sendHttpRequest, "url",
+            new Duration(milliseconds: 10));
+        var sentCount = 0;
+        Function getRequests = () {
+          if (sentCount++ == 0) return packedRequests;
+          else return [];
+        };
+
+        // when
+        transport.setHandlers(getRequests, null,
+            expectAsync((e) {
+              // then
+              expect(e, new isInstanceOf<ConnectionError>());
+              sendHttpRequest.resetBehavior();
+              sendHttpRequest.when(callsTo('call')).alwaysCall(
+                (url) => new Future.value(null)
+              );
+            }), expectAsync(() {}), expectAsync(() {transport.dispose();})
+        );
+      });
     });
   });
 
@@ -416,7 +496,7 @@ void main() {
       transport.setHandlers(() => packedRequests,
 
           // then
-          expectAsync1((receivedResponse) {
+          expectAsync((receivedResponse) {
             expect(receivedResponse, equals({'responses':response, 'authenticatedUserId': authenticatedUserId}));
           }
 
@@ -444,7 +524,7 @@ void main() {
 
       // when
       transport.setHandlers(() => packedRequests, null,
-          expectAsync1((e) {
+          expectAsync((e) {
             // then
             expect(e, new isInstanceOf<FailedRequestException>("FailedRequestException"));
           })
@@ -476,7 +556,7 @@ void main() {
     transport.setHandlers(() => packedRequests,
 
         // then
-        expectAsync1((receivedResponse) {
+        expectAsync((receivedResponse) {
           expect(receivedResponse, equals(response));
         },
         count: 1, max: 1
@@ -490,6 +570,7 @@ void main() {
         sendHttpRequest.getLogs(
             callsTo('call', 'url', 'POST', {'Content-Type': 'application/json'},
                     JSON.encode(packedRequests))).verify(happenedOnce);
+        transport.dispose();
       });
     });
     // then
