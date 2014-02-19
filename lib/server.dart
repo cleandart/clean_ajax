@@ -22,6 +22,8 @@ import 'client_backend.dart';
 
 
 Logger logger = new Logger('clean_ajax');
+
+final JSON_CONTENT_TYPE = new ContentType('application', 'json', charset: 'utf-8');
 /**
  * Type of handler which can be registered in [MultiRequestHandler] for
  * processing [ServerRequest]
@@ -110,13 +112,13 @@ class MultiRequestHandler {
     _splitAndProcessRequests(packedRequests, request.authenticatedUserId)
       .then((response) {
         request.response
-          ..headers.contentType = ContentType.parse("application/json")
+          ..headers.contentType = JSON_CONTENT_TYPE
           ..statusCode = HttpStatus.OK
           ..write(JSON.encode({'responses': response, 'authenticatedUserId': request.authenticatedUserId}))
           ..close();
       }).catchError((e) {
         request.response
-          ..headers.contentType = ContentType.parse("application/json")
+          ..headers.contentType = JSON_CONTENT_TYPE
           ..statusCode = HttpStatus.BAD_REQUEST
           ..close();
       }, test: (e) => e is UnknownHandlerException);
