@@ -43,13 +43,14 @@ void main() {
     });
 
     verifyCorrectRequestMetaData(request, expectedHttpStatusCode) {
-      var contentType = request.response.headers
+      ContentType contentType = request.response.headers
           .getLogs(callsTo('set contentType')).last.args.first;
       var statusCode = request.response
           .getLogs(callsTo('set statusCode')).last.args.first;
 
-      expect(contentType.toString(),
-          equals(ContentType.parse("application/json").toString()));
+      expect(contentType.charset, equals('utf-8'));
+      expect(contentType.primaryType, equals('application'));
+      expect(contentType.subType, equals('json'));
       expect(statusCode, expectedHttpStatusCode);
     }
 
