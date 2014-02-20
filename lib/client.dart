@@ -84,6 +84,7 @@ import "dart:core";
 import "dart:async";
 import "dart:collection";
 import "dart:convert";
+import 'dart:math';
 import "package:logging/logging.dart";
 
 import 'common.dart';
@@ -511,11 +512,63 @@ class LoopBackTransport extends Transport {
 
     _openRequest();
 
-    _sendLoopBackRequest(JSON.encode(_prepareRequest()), _authenticatedUserId)
+    new Future.delayed(new Duration(), () =>_sendLoopBackRequest(JSON.encode(_prepareRequest()), _authenticatedUserId)
     .then((response) {
       _handleResponse({'responses': response, 'authenticatedUserId': _authenticatedUserId});
       _closeRequest();
-    }).catchError((e) => _handleError(new FailedRequestException()));
+    }).catchError((e) {
+      _handleError(new FailedRequestException());
+      _closeRequest();
+    }));
 
   }
 }
+
+class LoopBackTransportStub extends LoopBackTransport {
+  Timer timer;
+  int probability = 0;
+  Duration duration;
+  Random random;
+  bool _connected = true;
+
+  LoopBackTransportStub(sendLoopBackRequest, [authenticatedUserId = null]) :
+    super(sendLoopBackRequest, authenticatedUserId) {
+    random = new Random(new DateTime.now().millisecondsSinceEpoch);
+  }
+
+  void disconnect() {
+     _connected = false;
+     _disconnectConnection();
+   }
+
+   void reconnect() {
+     _connected = true;
+     _reconnectConnection();
+   }
+
+
+   /**
+    * Requests would fail with [probability] for [duration].
+    */
+   void fail(int probability, Duration duration) {
+     this.probability = probability;
+     this.duration = duration;
+   }
+
+   void performRequest() {
+      if( (timer != null && timer.isActive) ||
+          random.nextDouble() >= probability) {
+        performRequest();
+      }
+      else {
+        _prepareRequest();
+        disconnect();
+        _handleError(new ConnectionError('Error'));
+        new Timer(duration, () => reconnect());
+      }
+   }
+
+   bool _shouldSendLoopBackRequest() => !_isRunning && _isDirty && _connected;
+}
+
+
