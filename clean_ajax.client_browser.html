@@ -1,0 +1,65 @@
+        <!DOCTYPE html>
+        <html>
+        <head>
+                <meta charset="utf-8">
+        <title>clean_ajax.client_browser Library / Dart Documentation</title>
+        <link rel="stylesheet" type="text/css"
+            href="styles.css">
+        <link href="//fonts.googleapis.com/css?family=Open+Sans:400,600,700,800" rel="stylesheet" type="text/css">
+        <link rel="shortcut icon" href="favicon.ico">
+        
+        </head>
+        <body data-library="clean_ajax.client_browser">
+        <div class="page">
+        <div class="header">
+          <a href="index.html"><div class="logo"></div></a>
+          <a href="index.html">Dart Documentation</a>
+         &rsaquo; <a href="clean_ajax.client_browser.html">clean_ajax.client_browser</a>        <div id="search-box">
+          <input type="search" name="q" id="q" autocomplete="off"
+              class="search-input" placeholder="Search API">
+        </div>
+        
+      </div>
+      <div class="drop-down" id="drop-down"></div>
+      
+        <div class="nav">
+        
+</div>
+<div class="content">
+<h2><strong>clean_ajax.client_browser</strong> library</h2>
+<div class="doc"><p>Browser implementation of <a class="crossref" href="clean_ajax.client/Connection.html">Connection</a>.</p></div>
+<h3>Exports</h3>
+<ul>
+<ul><a href="clean_ajax.client.html">clean_ajax.client</a></ul>
+<ul><a href="clean_ajax.common.html">clean_ajax.common</a> show <a class="crossref" href="clean_ajax.common/ClientRequest.html">ClientRequest</a></ul>
+</ul>
+<div>
+<h3>Functions</h3>
+<div class="method"><h4 id="createHttpConnection">
+<button class="show-code">Code</button>
+<a href="clean_ajax.client/Connection.html">Connection</a> <strong>createHttpConnection</strong>(url, <a href="http://api.dartlang.org/dart_core/Duration.html" ref="external">Duration</a> delayBetweenRequests, [<a href="http://api.dartlang.org/dart_core/int.html" ref="external">int</a> timeout = null]) <a class="anchor-link" href="#createHttpConnection"
+              title="Permalink to createHttpConnection">#</a></h4>
+<div class="doc">
+<p>Create new <a class="crossref" href="clean_ajax.client/Connection.html">Connection</a> based on ajax polling.</p>
+<p>Expects <code>MultiRequestHandler</code> listening server side on the 
+<span class="param">url</span>.
+Polling interval can be configured by 
+<span class="param">delayBetweenRequests</span>.</p>
+<pre class="source">
+Connection createHttpConnection(url, Duration delayBetweenRequests, [int timeout = null]) =&gt;
+ new Connection.config(
+     new HttpTransport(sendHttpRequest, url, delayBetweenRequests, timeout)
+ );
+</pre>
+</div>
+</div>
+</div>
+        </div>
+        <div class="clear"></div>
+        </div>
+        <div class="footer">
+          
+        </div>
+        <script async src="client-live-nav.js"></script>
+        </body></html>
+        

@@ -1,0 +1,114 @@
+        <!DOCTYPE html>
+        <html>
+        <head>
+                <meta charset="utf-8">
+        <title>clean_ajax.http_client Library / Dart Documentation</title>
+        <link rel="stylesheet" type="text/css"
+            href="styles.css">
+        <link href="//fonts.googleapis.com/css?family=Open+Sans:400,600,700,800" rel="stylesheet" type="text/css">
+        <link rel="shortcut icon" href="favicon.ico">
+        
+        </head>
+        <body data-library="clean_ajax.http_client">
+        <div class="page">
+        <div class="header">
+          <a href="index.html"><div class="logo"></div></a>
+          <a href="index.html">Dart Documentation</a>
+         &rsaquo; <a href="clean_ajax.http_client.html">clean_ajax.http_client</a>        <div id="search-box">
+          <input type="search" name="q" id="q" autocomplete="off"
+              class="search-input" placeholder="Search API">
+        </div>
+        
+      </div>
+      <div class="drop-down" id="drop-down"></div>
+      
+        <div class="nav">
+        
+</div>
+<div class="content">
+<h2><strong>clean_ajax.http_client</strong> library</h2>
+<div>
+<h3>Functions</h3>
+<div class="method"><h4 id="sendHttpRequest">
+<button class="show-code">Code</button>
+<a href="http://api.dartlang.org/dart_async/Future.html" ref="external">Future</a>&lt;<a href="http://api.dartlang.org/dart_html/HttpRequest.html" ref="external">HttpRequest</a>&gt; <strong>sendHttpRequest</strong>(<a href="http://api.dartlang.org/dart_core/String.html" ref="external">String</a> url, {<a href="http://api.dartlang.org/dart_core/String.html" ref="external">String</a> method, <a href="http://api.dartlang.org/dart_core/bool.html" ref="external">bool</a> withCredentials, <a href="http://api.dartlang.org/dart_core/String.html" ref="external">String</a> responseType, <a href="http://api.dartlang.org/dart_core/String.html" ref="external">String</a> mimeType, <a href="http://api.dartlang.org/dart_core/Map.html" ref="external">Map</a>&lt;<a href="http://api.dartlang.org/dart_core/String.html" ref="external">String</a>, <a href="http://api.dartlang.org/dart_core/String.html" ref="external">String</a>&gt; requestHeaders, sendData, void onProgress(<a href="http://api.dartlang.org/dart_html/ProgressEvent.html" ref="external">ProgressEvent</a> e), <a href="http://api.dartlang.org/dart_core/int.html" ref="external">int</a> timeout, <a href="http://api.dartlang.org/dart_core/Function.html" ref="external">Function</a> requestFactory}) <a class="anchor-link" href="#sendHttpRequest"
+              title="Permalink to sendHttpRequest">#</a></h4>
+<div class="doc">
+<p>Custom variant of the HttpRequest.request() method which handles timeouts
+and divides Connection errors with Erroneous responses (HTTP errors)</p>
+<pre class="source">
+Future&lt;HttpRequest&gt; sendHttpRequest(String url,
+   {String method, bool withCredentials, String responseType,
+ String mimeType, Map&lt;String, String&gt; requestHeaders, sendData,
+ void onProgress(ProgressEvent e), int timeout, Function requestFactory}) {
+ var completer = new Completer&lt;HttpRequest&gt;();
+
+ var xhr = new HttpRequest();
+ if (null != requestFactory) xhr = requestFactory();
+ if (method == null) {
+   method = 'GET';
+ }
+ xhr.open(method, url, async: true);
+
+ if (withCredentials != null) {
+   xhr.withCredentials = withCredentials;
+ }
+
+ if (responseType != null) {
+   xhr.responseType = responseType;
+ }
+
+ if (mimeType != null) {
+   xhr.overrideMimeType(mimeType);
+ }
+
+ if (requestHeaders != null) {
+   requestHeaders.forEach((header, value) {
+     xhr.setRequestHeader(header, value);
+   });
+ }
+
+ if (onProgress != null) {
+   xhr.onProgress.listen(onProgress);
+ }
+
+ if (timeout != null) {
+   xhr.timeout = timeout;
+   xhr.onTimeout.listen((e) {
+     return completer.completeError(new ConnectionError(e));
+   });
+ }
+
+ xhr.onLoad.listen((e) {
+   // Note: file:// URIs have status of 0.
+   if ((xhr.status &gt;= 200 &amp;&amp; xhr.status &lt; 300) ||
+       xhr.status == 0 || xhr.status == 304) {
+     completer.complete(xhr);
+   } else {
+     completer.completeError(new ResponseError(e));
+   }
+ });
+
+ xhr.onError.listen((e) =&gt; completer.completeError(new ConnectionError(e)));
+
+ if (sendData != null) {
+   xhr.send(sendData);
+ } else {
+   xhr.send();
+ }
+
+ return completer.future;
+}
+</pre>
+</div>
+</div>
+</div>
+        </div>
+        <div class="clear"></div>
+        </div>
+        <div class="footer">
+          
+        </div>
+        <script async src="client-live-nav.js"></script>
+        </body></html>
+        
