@@ -517,12 +517,7 @@ class LoopBackTransport extends Transport {
       _handleResponse({'responses': response, 'authenticatedUserId': _authenticatedUserId});
       _closeRequest();
     }).catchError((e) {
-      if (e is ConnectionError) {
-        _handleError(e);
-      } else {
-        logger.shout("error", e, s);
-        _handleError(new FailedRequestException());
-      }
+      _handleError(new FailedRequestException());
       _closeRequest();
     }));
 

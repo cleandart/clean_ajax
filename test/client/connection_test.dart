@@ -536,7 +536,7 @@ void main() {
     });
   });
 
-  solo_group('LoopBackTransport', () {
+  group('LoopBackTransport', () {
     test('After calling fail, first request runs with error and next requests are not executed.', () {
       // given
       int requests = 0;
