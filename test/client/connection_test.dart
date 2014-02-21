@@ -506,9 +506,9 @@ void main() {
       transport.markDirty();
 
       // then
-      sendLoopBackRequest.getLogs(
+      return new Future(() => sendLoopBackRequest.getLogs(
           callsTo('call', JSON.encode(packedRequests), authenticatedUserId))
-            .verify(happenedOnce);
+            .verify(happenedOnce));
     });
 
     test('handle error.', () {
@@ -533,6 +533,68 @@ void main() {
       // when
       transport.markDirty();
 
+    });
+  });
+
+  solo_group('LoopBackTransport', () {
+    test('After calling fail, first request runs with error and next requests are not executed.', () {
+      // given
+      int requests = 0;
+      var response = [{"id": 1}, {"id": 2}];
+      var authenticatedUserId = new Mock();
+
+      var packedRequests = [{"packedId": 1}, {"packedId": 2}];
+      var sendLoopBackRequest = new Mock()
+          ..when(callsTo('call')).alwaysReturn(new Future.value(response));
+
+      var transport = new LoopBackTransportStub(
+          sendLoopBackRequest,
+          authenticatedUserId
+      );
+      transport.fail(1, new Duration(hours: 1));
+
+      transport.setHandlers(() { requests++; return packedRequests; }, (response) => expect(false, isTrue)
+          , expectAsync((e) => expect(e, new isInstanceOf<ConnectionError>())));
+
+      // when
+      transport.markDirty();
+      transport.markDirty();
+
+      expect(requests, equals(1));
+      // then
+      return new Future(() => sendLoopBackRequest.getLogs(
+          callsTo('call', JSON.encode(packedRequests), authenticatedUserId))
+            .verify(neverHappened));
+     });
+
+    test('Disconnecting returns error.', () {
+      // given
+      var response = [{"id": 1}, {"id": 2}];
+      var authenticatedUserId = new Mock();
+
+      var packedRequests = [{"packedId": 1}, {"packedId": 2}];
+      var sendLoopBackRequest = new Mock()
+          ..when(callsTo('call')).alwaysReturn(new Future.value(response));
+
+      var transport = new LoopBackTransportStub(
+          sendLoopBackRequest,
+          authenticatedUserId
+      );
+      transport.fail(1, new Duration(hours: 2));
+
+      transport.setHandlers(() => packedRequests,
+          expectAsync((response) => null, count: 1),
+          expectAsync((e) => expect(e, new isInstanceOf<ConnectionError>()), count: 1));
+
+      // when
+      transport.markDirty();
+      transport.fail(0, new Duration());
+      transport.markDirty();
+
+      // then
+      return new Future(() => sendLoopBackRequest.getLogs(
+          callsTo('call', JSON.encode(packedRequests), authenticatedUserId))
+            .verify(happenedOnce));
     });
   });
 

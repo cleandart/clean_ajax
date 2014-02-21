@@ -517,6 +517,7 @@ class LoopBackTransport extends Transport {
       _handleResponse({'responses': response, 'authenticatedUserId': _authenticatedUserId});
       _closeRequest();
     }).catchError((e) {
+      print(e);
       _handleError(new FailedRequestException());
       _closeRequest();
     }));
@@ -537,13 +538,17 @@ class LoopBackTransportStub extends LoopBackTransport {
   }
 
   void disconnect() {
-     _connected = false;
-     _disconnectConnection();
+     if(_connected == true) {
+       _connected = false;
+       _disconnectConnection();
+     }
    }
 
    void reconnect() {
-     _connected = true;
-     _reconnectConnection();
+     if(_connected == false) {
+       _connected = true;
+       _reconnectConnection();
+     }
    }
 
 
@@ -551,6 +556,8 @@ class LoopBackTransportStub extends LoopBackTransport {
     * Requests would fail with [probability] for [duration].
     */
    void fail(int probability, Duration duration) {
+     if(timer != null) timer.cancel();
+     reconnect();
      this.probability = probability;
      this.duration = duration;
    }
@@ -558,13 +565,13 @@ class LoopBackTransportStub extends LoopBackTransport {
    void performRequest() {
       if( (timer != null && timer.isActive) ||
           random.nextDouble() >= probability) {
-        performRequest();
+        super.performRequest();
       }
       else {
         _prepareRequest();
         disconnect();
         _handleError(new ConnectionError('Error'));
-        new Timer(duration, () => reconnect());
+        timer = new Timer(duration, () => print('abcdefgh'));
       }
    }
 
