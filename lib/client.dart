@@ -526,7 +526,7 @@ class LoopBackTransport extends Transport {
 
 class LoopBackTransportStub extends LoopBackTransport {
   Timer timer;
-  int probability = 0;
+  double probability = 0.0;
   Duration duration;
   Random random;
   bool _connected = true;
@@ -554,7 +554,7 @@ class LoopBackTransportStub extends LoopBackTransport {
    /**
     * Requests would fail with [probability] for [duration].
     */
-   void fail(int probability, Duration duration) {
+   void fail(double probability, Duration duration) {
      if(timer != null) timer.cancel();
      reconnect();
      this.probability = probability;
@@ -562,19 +562,17 @@ class LoopBackTransportStub extends LoopBackTransport {
    }
 
    void performRequest() {
-      if( (timer != null && timer.isActive) ||
-          random.nextDouble() >= probability) {
+      if( ((timer != null && timer.isActive) ||
+          random.nextDouble() >= probability) && _connected) {
         super.performRequest();
       }
       else {
         _prepareRequest();
         disconnect();
         _handleError(new ConnectionError('Error'));
-        timer = new Timer(duration, () => print('abcdefgh'));
+        if(duration != null)timer = new Timer(duration, (){ reconnect(); this.probability = 0.0; });
       }
    }
-
-   bool _shouldSendLoopBackRequest() => !_isRunning && _isDirty && _connected;
 }
 
 

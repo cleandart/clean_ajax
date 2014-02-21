@@ -536,7 +536,7 @@ void main() {
     });
   });
 
-  group('LoopBackTransport', () {
+  group('LoopBackTransportStub', () {
     test('After calling fail, first request runs with error and next requests are not executed.', () {
       // given
       int requests = 0;
@@ -551,13 +551,12 @@ void main() {
           sendLoopBackRequest,
           authenticatedUserId
       );
-      transport.fail(1, new Duration(hours: 1));
+      transport.fail(1.0, new Duration(hours: 1));
 
       transport.setHandlers(() { requests++; return packedRequests; }, (response) => expect(false, isTrue)
           , expectAsync((e) => expect(e, new isInstanceOf<ConnectionError>())));
 
       // when
-      transport.markDirty();
       transport.markDirty();
 
       expect(requests, equals(1));
@@ -580,7 +579,7 @@ void main() {
           sendLoopBackRequest,
           authenticatedUserId
       );
-      transport.fail(1, new Duration(hours: 2));
+      transport.fail(1.0, new Duration(hours: 2));
 
       transport.setHandlers(() => packedRequests,
           expectAsync((response) => null, count: 1),
@@ -588,7 +587,7 @@ void main() {
 
       // when
       transport.markDirty();
-      transport.fail(0, new Duration());
+      transport.fail(0.0, null);
       transport.markDirty();
 
       // then
