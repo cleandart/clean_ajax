@@ -84,6 +84,7 @@ import "dart:core";
 import "dart:async";
 import "dart:collection";
 import "dart:convert";
+import 'dart:math';
 import "package:logging/logging.dart";
 
 import 'common.dart';
@@ -511,11 +512,90 @@ class LoopBackTransport extends Transport {
 
     _openRequest();
 
-    _sendLoopBackRequest(JSON.encode(_prepareRequest()), _authenticatedUserId)
+    new Future.delayed(new Duration(), () =>_sendLoopBackRequest(JSON.encode(_prepareRequest()), _authenticatedUserId)
     .then((response) {
       _handleResponse({'responses': response, 'authenticatedUserId': _authenticatedUserId});
       _closeRequest();
-    }).catchError((e) => _handleError(new FailedRequestException()));
+    }).catchError((e, s) {
+      logger.shout('error: ',e,s);
+      _handleError(new FailedRequestException());
+      _closeRequest();
+    }));
 
   }
 }
+
+class LoopBackTransportStub extends LoopBackTransport {
+  num probability;
+  Duration duration;
+  Random random;
+  // on, off, down, up
+  String state='on';
+
+  LoopBackTransportStub(sendLoopBackRequest, [authenticatedUserId = null]) :
+    super(sendLoopBackRequest, authenticatedUserId) {
+    random = new Random(new DateTime.now().millisecondsSinceEpoch);
+  }
+
+   /**
+    * Requests would fail with [probability] for [duration].
+    */
+  void fail(num probability, [Duration duration = const Duration()]) {
+    if (state != 'on') {
+      return;
+    }
+    state = 'down';
+    this.probability = probability;
+    this.duration = duration;
+  }
+
+  performFailRequest(){
+    return new Future.delayed(new Duration(), (){
+      _prepareRequest();
+      _handleError(new ConnectionError('Error'));
+      _closeRequest();
+    });
+  }
+
+  void performPingRequest(){
+    new Future.delayed(new Duration(), (){
+      this.markDirty();
+    });
+  }
+
+
+  void performRequest() {
+     if(!_shouldSendLoopBackRequest()){
+       return;
+     }
+     if (state == 'on') super.performRequest();
+     else if (state == 'off') {
+       performPingRequest();
+     }
+     else if (state == 'down') {
+       if(probability > random.nextDouble()) {
+         logger.fine('stub-state transfer -> off');
+         state = 'off';
+         performFailRequest().then((_) => _disconnectConnection());
+         new Timer(duration, () {
+           logger.fine('stub-state transfer -> off');
+           state = 'up';
+         });
+       } else {
+         super.performRequest();
+       }
+     }
+     else if (state == 'up') {
+       if(probability > random.nextDouble()) {
+         logger.fine('stub-state transfer -> up');
+         state = 'on';
+         _reconnectConnection();
+         performRequest();
+       } else {
+         performPingRequest();
+       }
+     };
+  }
+}
+
+

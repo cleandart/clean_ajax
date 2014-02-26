@@ -378,7 +378,6 @@ void main() {
         transport.dispose();
       });
 
-
     });
 
     test('handle error.', () {
@@ -506,9 +505,9 @@ void main() {
       transport.markDirty();
 
       // then
-      sendLoopBackRequest.getLogs(
+      return new Future.delayed(new Duration(milliseconds: 20), () => sendLoopBackRequest.getLogs(
           callsTo('call', JSON.encode(packedRequests), authenticatedUserId))
-            .verify(happenedOnce);
+            .verify(happenedOnce));
     });
 
     test('handle error.', () {
@@ -532,6 +531,113 @@ void main() {
 
       // when
       transport.markDirty();
+
+    });
+
+    // TODO
+    test('requests are sent in the next event-loop', (){
+
+    });
+
+    // TODO
+    test('ClientRequest are JSON serialized / deserialized', (){
+
+    });
+
+  });
+
+  group('LoopBackTransportStub', () {
+    test('After calling fail, first request runs with error and next requests are not executed.', () {
+      // given
+      int requests = 0;
+      var response = new Mock();
+      var authenticatedUserId = new Mock();
+
+      var packedRequests = new Mock();
+      var sendLoopBackRequest = new Mock()
+          ..when(callsTo('call')).alwaysReturn(new Future.value(response));
+
+      var transport = new LoopBackTransportStub(
+          sendLoopBackRequest,
+          authenticatedUserId
+      );
+
+      transport.setHandlers(
+          () { requests++; return packedRequests; },
+          (response) => expect(false, isTrue),
+          expectAsync((e) => expect(e, new isInstanceOf<ConnectionError>())));
+
+      transport.fail(1.0, new Duration(hours: 1));
+
+      // when
+      transport.markDirty();
+
+      // then
+      return new Future.delayed(new Duration(milliseconds: 50)).then((_){
+        expect(requests, equals(1));
+        sendLoopBackRequest.getLogs(
+            callsTo('call', JSON.encode(packedRequests), authenticatedUserId))
+              .verify(neverHappened);
+      });
+    });
+
+    test('when calling fail repeatedly, everything works fine', (){
+      // given
+      var response = new Mock();
+      var packedRequests = [new Mock(), new Mock()];
+      var responseCount = 0;
+      var numResponseCount = 0;
+      var sumResponseCount = 0;
+      var authenticatedUserId = new Mock();
+      bool _connect = true;
+      var sendLoopBackRequest = new Mock()
+          ..when(callsTo('call'))
+          .alwaysReturn(new Future.delayed(new Duration(), () => response));
+
+      var transport = new LoopBackTransportStub(
+          sendLoopBackRequest,
+          authenticatedUserId
+      );
+      transport.setHandlers(
+          () {  expect(_connect, isTrue);
+                transport.markDirty();
+                return packedRequests;
+          },
+          (response) {
+            responseCount++;
+          },
+          (error) {},
+          (){
+            _connect = false;
+            sumResponseCount+=responseCount;
+            numResponseCount++;
+
+          },
+          (){_connect = true;}
+      );
+
+      num millis = 50;
+
+      Timer timer = new Timer.periodic(new Duration(milliseconds: millis*4), (_){
+        responseCount = 0;
+        transport.fail(0.1, new Duration(milliseconds: millis*2));
+
+        new Future.delayed(new Duration(milliseconds: millis*1), () {
+          expect(_connect, isFalse);
+        });
+        new Future.delayed(new Duration(milliseconds: millis*3), () {
+          expect(_connect, isTrue);
+        });
+      });
+
+      transport.markDirty();
+
+      return new Future.delayed(new Duration(seconds: 5))
+      .then((_){
+        expect(sumResponseCount/numResponseCount, inInclusiveRange(5, 15));
+        timer.cancel();
+        transport.setHandlers((){}, (_){}, (_){});
+      });
 
     });
   });
