@@ -537,14 +537,6 @@ class LoopBackTransportStub extends LoopBackTransport {
     random = new Random(new DateTime.now().millisecondsSinceEpoch);
   }
 
-  void disconnect() {
-     _disconnectConnection();
-  }
-
-  void reconnect() {
-    _reconnectConnection();
-  }
-
    /**
     * Requests would fail with [probability] for [duration].
     */
@@ -566,7 +558,6 @@ class LoopBackTransportStub extends LoopBackTransport {
 
   void performPingRequest(){
     new Future.delayed(new Duration(), (){
-      _handleError(new ConnectionError('Error'));
       this.markDirty();
     });
   }
@@ -581,7 +572,7 @@ class LoopBackTransportStub extends LoopBackTransport {
        if(probability > random.nextDouble()) {
          logger.fine('stub-state transfer -> off');
          state = 'off';
-         performFailRequest().then((_) => disconnect());
+         performFailRequest().then((_) => _disconnectConnection());
          new Timer(duration, () {
            logger.fine('stub-state transfer -> off');
            state = 'up';
@@ -594,7 +585,7 @@ class LoopBackTransportStub extends LoopBackTransport {
        if(probability > random.nextDouble()) {
          logger.fine('stub-state transfer -> up');
          state = 'on';
-         reconnect();
+         _reconnectConnection();
          performRequest();
        } else {
          performPingRequest();

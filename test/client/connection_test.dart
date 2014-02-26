@@ -584,7 +584,7 @@ void main() {
   });
 
   group('LoopBackTransportStub', () {
-    solo_test('After calling fail, first request runs with error and next requests are not executed.', () {
+    test('After calling fail, first request runs with error and next requests are not executed.', () {
       // given
       int requests = 0;
       var response = new Mock();
@@ -676,36 +676,6 @@ void main() {
         transport.setHandlers((){}, (_){}, (_){});
       });
 
-    });
-
-    skip_test('Disconnecting returns error.', () {
-      // given
-      var response = [{"id": 1}, {"id": 2}];
-      var authenticatedUserId = new Mock();
-
-      var packedRequests = [{"packedId": 1}, {"packedId": 2}];
-      var sendLoopBackRequest = new Mock()
-          ..when(callsTo('call')).alwaysReturn(new Future.value(response));
-
-      var transport = new LoopBackTransportStub(
-          sendLoopBackRequest,
-          authenticatedUserId
-      );
-      transport.fail(1.0, new Duration(hours: 2));
-
-      transport.setHandlers(() => packedRequests,
-          expectAsync((response) => null, count: 1),
-          expectAsync((e) => expect(e, new isInstanceOf<ConnectionError>()), count: 1));
-
-      // when
-      transport.markDirty();
-      transport.fail(0.0, null);
-      transport.markDirty();
-
-      // then
-      return new Future(() => sendLoopBackRequest.getLogs(
-          callsTo('call', JSON.encode(packedRequests), authenticatedUserId))
-            .verify(happenedOnce));
     });
   });
 
