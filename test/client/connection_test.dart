@@ -505,7 +505,7 @@ void main() {
       transport.markDirty();
 
       // then
-      return new Future(() => sendLoopBackRequest.getLogs(
+      return new Future.delayed(new Duration(milliseconds: 20), () => sendLoopBackRequest.getLogs(
           callsTo('call', JSON.encode(packedRequests), authenticatedUserId))
             .verify(happenedOnce));
     });
