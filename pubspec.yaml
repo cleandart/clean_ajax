@@ -1,16 +1,17 @@
 name: clean_ajax
-version: 0.4.8
 author: Clean Team <clean@vacuumlabs.com>
-description: Data transport layer for Clean framework.
+version: 0.4.5
 homepage: http://cleandart.github.io/clean_ajax/
+description: Data transport layer for Clean framework.
+documentation: http://cleandart.github.io/clean_ajax/
 environment:
   sdk: '>=0.8.10+6 <2.0.0'
-documentation: http://cleandart.github.io/clean_ajax/
 dependencies:
   browser: '>=0.9.0 <0.10.0'
-  clean_backend: '>=0.2.0 <0.3.0'
+  clean_backend:
+    path: ../clean_backend
   http_server: '>=0.9.0 <0.10.0'
   logging: any
 dev_dependencies:
   hop: any
-  unittest: '>=0.10.0'
+  unittest: any
