@@ -544,43 +544,6 @@ void main() {
 
     });
 
-    // TODO
-    test('Error thrown in backend is correctly propagated', (){
-      var response = new Mock();
-      var packedRequests = [new Mock(), new Mock()];
-      var responseCount = 0;
-      var numResponseCount = 0;
-      var sumResponseCount = 0;
-      var authenticatedUserId = new Mock();
-      bool _connect = true;
-      var sendLoopBackRequest = new Mock()
-          ..when(callsTo('call'))
-          .alwaysReturn(new Future.delayed(new Duration(), () => response));
-
-      var transport = new LoopBackTransportStub(
-          sendLoopBackRequest,
-          authenticatedUserId
-      );
-      transport.setHandlers(
-          () {  expect(_connect, isTrue);
-                transport.markDirty();
-                return packedRequests;
-          },
-          (response) {
-            responseCount++;
-          },
-          (error) {},
-          (){
-            _connect = false;
-            sumResponseCount+=responseCount;
-            numResponseCount++;
-
-          },
-          (){_connect = true;}
-      );
-    });
-
-
   });
 
   group('LoopBackTransportStub', () {
@@ -653,7 +616,7 @@ void main() {
           (){_connect = true;}
       );
 
-      num millis = 30;
+      num millis = 50;
 
       Timer timer = new Timer.periodic(new Duration(milliseconds: millis*4), (_){
         responseCount = 0;
@@ -669,9 +632,9 @@ void main() {
 
       transport.markDirty();
 
-      return new Future.delayed(new Duration(seconds: 2))
+      return new Future.delayed(new Duration(seconds: 5))
       .then((_){
-        expect(sumResponseCount/numResponseCount, inInclusiveRange(2, 8));
+        expect(sumResponseCount/numResponseCount, inInclusiveRange(5, 15));
         timer.cancel();
         transport.setHandlers((){}, (_){}, (_){});
       });

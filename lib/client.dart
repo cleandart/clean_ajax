@@ -553,6 +553,7 @@ class LoopBackTransportStub extends LoopBackTransport {
     return new Future.delayed(new Duration(), (){
       _prepareRequest();
       _handleError(new ConnectionError('Error'));
+      _closeRequest();
     });
   }
 
@@ -564,6 +565,9 @@ class LoopBackTransportStub extends LoopBackTransport {
 
 
   void performRequest() {
+     if(!_shouldSendLoopBackRequest()){
+       return;
+     }
      if (state == 'on') super.performRequest();
      else if (state == 'off') {
        performPingRequest();
