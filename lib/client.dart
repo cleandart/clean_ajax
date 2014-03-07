@@ -327,6 +327,12 @@ class HttpTransport extends Transport {
   bool _isRunning = false;
 
   /**
+   * if true, _performRequest is scheduled and new _performRequest shouldn't be
+   * scheduled
+   */
+  bool scheduled = false;
+
+  /**
    * Time interval between response to a request is received and next request
    * is sent.
    */
@@ -366,7 +372,20 @@ class HttpTransport extends Transport {
    * the new requests will be sent in next "iteration" (after response is
    * received + time interval _delayBetweenRequests passes).
    */
-  markDirty() {}
+  markDirty() {
+    if (!scheduled) {
+      // TODO: make this constant configurable
+      new Future.delayed(new Duration(milliseconds: 50), (){
+        if (!_isRunning) {
+          scheduled = false;
+          _performRequest();
+        } else {
+          markDirty();
+        }
+      });
+    }
+    scheduled = true;
+  }
 
   /**
    * Marks timer as disposed, which prevents him from future sending of http
