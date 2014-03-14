@@ -276,7 +276,8 @@ class Connection {
   Stream sendPeriodically(CreateRequest createRequest) {
     var periodicRequest = {'createRequest': createRequest};
     var streamController = new StreamController(
-        onCancel: () => _periodicRequests.remove(periodicRequest));
+        onCancel: () =>
+            _periodicRequests.remove(periodicRequest));
     periodicRequest['controller'] = streamController;
     _periodicRequests.add(periodicRequest);
     _transport.markDirty();
@@ -377,9 +378,10 @@ class HttpTransport extends Transport {
       // TODO: make this constant configurable
       new Future.delayed(new Duration(milliseconds: 50), (){
         if (!_isRunning) {
-          scheduled = false;
           _performRequest();
+          scheduled = false;
         } else {
+          scheduled = false;
           markDirty();
         }
       });

@@ -135,7 +135,6 @@ class MultiRequestHandler {
    */
   Future<List> _splitAndProcessRequests(List<PackedRequest> requests,
                                         authenticatedUserId) {
-
     final List responses = new List();
     //now you need to call on each element of requests function _handleClientRequest
     //this calls are asynchronous but must run in sequencial order
