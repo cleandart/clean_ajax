@@ -194,7 +194,7 @@ class Connection {
   List<PackedRequest> _prepareRequest() {
     var request_list = [];
     for (var request in _periodicRequests) {
-      send(request['createRequest']).then((value) {
+      _send(request['createRequest']).then((value) {
         request['controller'].add(value);
       }).catchError((e) {
         request['controller'].addError(e);
@@ -253,6 +253,12 @@ class Connection {
     var completer = new Completer();
     _requestQueue.add({'createRequest': createRequest, 'completer': completer});
     _transport.markDirty();
+    return completer.future;
+  }
+
+  Future _send(CreateRequest createRequest) {
+    var completer = new Completer();
+    _requestQueue.add({'createRequest': createRequest, 'completer': completer});
     return completer.future;
   }
 

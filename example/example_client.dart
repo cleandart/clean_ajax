@@ -13,7 +13,7 @@ void main() {
     InputElement request = querySelector("#request");
     ParagraphElement responseElem = querySelector("#response");
 
-    connection.send(()=>new ClientRequest('dummyType', request.value)).then(
+    connection.send(()=>new ClientRequest('json', request.value)).then(
         (response) {
           responseElem.text = request.value;
         }
