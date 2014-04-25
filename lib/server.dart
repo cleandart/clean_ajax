@@ -116,12 +116,19 @@ class MultiRequestHandler {
           ..statusCode = HttpStatus.OK
           ..write(JSON.encode({'responses': response, 'authenticatedUserId': request.authenticatedUserId}))
           ..close();
-      }).catchError((e) {
+      }).catchError((e, s) {
+        if (request.runtimeType == Request)
         request.response
           ..headers.contentType = JSON_CONTENT_TYPE
           ..statusCode = HttpStatus.BAD_REQUEST
           ..close();
-      }, test: (e) => e is UnknownHandlerException);
+          logger.shout("request details:\n"
+                       "body: ${request.body}\n"
+                       "auth_user: ${request.authenticatedUserId}\n"
+                       "headers: ${request.headers}\n"
+                       "address: ${request.httpRequest.connectionInfo.remoteAddress}"
+              , e, s);
+      });
   }
 
   Future<List> handleLoopBackRequest(String requests,
@@ -158,8 +165,8 @@ class MultiRequestHandler {
                        responses.add({'id': request.id, 'response': response});
                  });
              }
-           ).then((_) => new Future.value(responses)).
-             catchError((e, s) {
+           ).then((_) => new Future.value(responses))
+           .catchError((e, s) {
                logger.shout('Exception during request processing: $e \n $s');
                throw e;
            });

@@ -179,7 +179,7 @@ void main() {
         requestHandler.handleHttpRequest(request);
 
         //then
-        var closeCalled = expectAsync0(() {
+        var closeCalled = expectAsync(() {
           verifyCorrectRequestMetaData(request, HttpStatus.OK);
           verifyCorrectRequestContent(request,
               '{"responses":[{"id":1,"response":"specificResponse"},'
