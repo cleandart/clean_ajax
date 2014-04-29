@@ -117,17 +117,19 @@ class MultiRequestHandler {
           ..write(JSON.encode({'responses': response, 'authenticatedUserId': request.authenticatedUserId}))
           ..close();
       }).catchError((e, s) {
-        if (request.runtimeType == Request)
         request.response
           ..headers.contentType = JSON_CONTENT_TYPE
           ..statusCode = HttpStatus.BAD_REQUEST
           ..close();
-          logger.shout("request details:\n"
-                       "body: ${request.body}\n"
-                       "auth_user: ${request.authenticatedUserId}\n"
-                       "headers: ${request.headers}\n"
-                       "address: ${request.httpRequest.connectionInfo.remoteAddress}"
-              , e, s);
+          /// check, if request is (not) Mock, in this case, log nothing
+          if (request.runtimeType == Request) {
+            logger.shout("request details:\n"
+                         "body: ${request.body}\n"
+                         "auth_user: ${request.authenticatedUserId}\n"
+                         "headers: ${request.headers}\n"
+                         "address: ${request.httpRequest.connectionInfo.remoteAddress}\n\n"
+                , e, s);
+          }
       });
   }
 
