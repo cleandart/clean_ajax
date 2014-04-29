@@ -122,13 +122,15 @@ class MultiRequestHandler {
           ..statusCode = HttpStatus.BAD_REQUEST
           ..close();
           /// check, if request is (not) Mock, in this case, log nothing
-          if (request.runtimeType == Request) {
+          if (request.httpRequest is HttpRequest) {
+            try {
             logger.shout("request details:\n"
                          "body: ${request.body}\n"
                          "auth_user: ${request.authenticatedUserId}\n"
                          "headers: ${request.headers}\n"
                          "address: ${request.httpRequest.connectionInfo.remoteAddress}\n\n"
                 , e, s);
+            } catch (e){};
           }
       });
   }
