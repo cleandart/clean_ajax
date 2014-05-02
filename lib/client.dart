@@ -447,7 +447,12 @@ class HttpTransport extends Transport {
 
     _openRequest();
     _buildRequest(data).then((xhr) {
-        _handleResponse(JSON.decode(xhr.responseText));
+        try {
+          _handleResponse(JSON.decode(xhr.responseText));
+        } catch (e,s){
+          logger.shout("_handleResponse failed response ${xhr.responseText}", e, s);
+          rethrow;
+        }
         _closeRequest();
     }).catchError((e, s) {
       if (e is ConnectionError) {
