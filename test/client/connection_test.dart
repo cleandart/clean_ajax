@@ -271,7 +271,8 @@ void main() {
         var clientRequests = packedRequests.map((request) => request.clientRequest);
 
         // then
-        expect(clientRequests, unorderedEquals([request1, request3]));
+        return new Future.value(() =>
+          expect(clientRequests, unorderedEquals([request1, request3])));
       });
 
     });
