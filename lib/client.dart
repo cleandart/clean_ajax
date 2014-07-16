@@ -276,8 +276,9 @@ class Connection {
   Stream sendPeriodically(CreateRequest createRequest) {
     var periodicRequest = {'createRequest': createRequest};
     var streamController = new StreamController(
-        onCancel: () => new Future.value(() =>
-            _periodicRequests.remove(periodicRequest)));
+        onCancel: () =>
+            new Future.value( _periodicRequests.remove(periodicRequest))
+        );
     periodicRequest['controller'] = streamController;
     _periodicRequests.add(periodicRequest);
     _transport.markDirty();
