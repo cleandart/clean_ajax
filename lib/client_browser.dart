@@ -17,7 +17,8 @@ import 'http_request.dart';
  * Expects [MultiRequestHandler] listening server side on the [url].
  * Polling interval can be configured by [delayBetweenRequests].
  */
-Connection createHttpConnection(url, Duration delayBetweenRequests, [int timeout = null]) =>
+Connection createHttpConnection(url, Duration delayBetweenRequests, {int timeout: null, authenticatedUserId: null}) =>
   new Connection.config(
-      new HttpTransport(sendHttpRequest, url, delayBetweenRequests, timeout)
+      new HttpTransport(sendHttpRequest, url, delayBetweenRequests, timeout),
+      authenticatedUserId
   );
