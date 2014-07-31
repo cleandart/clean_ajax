@@ -167,7 +167,7 @@ class Connection {
    * [createLoopBackConnection] factories from [clean_ajax.client_browser] and
    * [clean_ajax.client_backend] libraries.
    */
-  Connection.config(this._transport) {
+  Connection.config(this._transport, [this._authenticatedUserId]) {
     this._transport.setHandlers(_prepareRequest, _handleResponse, _handleError, _disconnect, _reconnect);
   }
 

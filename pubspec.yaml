@@ -1,5 +1,5 @@
 name: clean_ajax
-version: 0.4.21
+version: 0.4.22
 author: Clean Team <clean@vacuumlabs.com>
 description: Data transport layer for Clean framework.
 homepage: http://cleandart.github.io/clean_ajax/
