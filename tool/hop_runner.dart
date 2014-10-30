@@ -12,7 +12,6 @@ void main (List<String> args) {
   var paths = ['lib/client.dart', 'lib/client_backend.dart',
                'lib/client_browser.dart', 'lib/common.dart', 'lib/server.dart'];
 
-  addTask('docs', createDartDocTask(paths, linkApi: true));
   addTask('analyze', createAnalyzerTask(paths));
   addTask('test', createUnitTestTask(test_all.run));
 
