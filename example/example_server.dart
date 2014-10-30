@@ -32,7 +32,7 @@ void main() {
     );
   }
 
-  Backend.bind([], new SHA256()).then((backend) {
+  Backend.bind("0.0.0.0", 8080, "").then((backend) {
     backend.addDefaultHttpHeader('Access-Control-Allow-Origin','*');
     backend.addDefaultHttpHeader('Access-Control-Allow-Headers','*');
     backend.addRoute('resources', new Route('/resources/'));
