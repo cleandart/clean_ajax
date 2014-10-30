@@ -12,4 +12,4 @@ dependencies:
   clean_logging: any
 dev_dependencies:
   hop: any
-  unittest: '>=0.10.0'
+  unittest: '>=0.10.0 < 0.11.0'
