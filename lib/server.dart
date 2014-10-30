@@ -12,7 +12,7 @@ import "dart:core";
 import "dart:async";
 import "dart:convert";
 import 'dart:io';
-import 'package:logging/logging.dart';
+import 'package:clean_logging/logger.dart';
 import 'package:http_server/http_server.dart';
 import 'package:clean_backend/clean_backend.dart' show Request;
 
@@ -101,8 +101,11 @@ class MultiRequestHandler {
    */
   void handleHttpRequest(Request request) {
     if (request.type != 'json') {
-      throw new Exception('Request type is ${request.type}, '
-                          'json was expected!');
+      logger.warning('Request type is ${request.type}, json was expected!');
+      request.response
+          ..statusCode = HttpStatus.BAD_REQUEST
+          ..close();
+      return;
     }
     List<PackedRequest> packedRequests =
 //        packedRequestsFromJson(JSON.decode(request.body));
@@ -129,7 +132,7 @@ class MultiRequestHandler {
                          "auth_user: ${request.authenticatedUserId}\n"
                          "headers: ${request.headers}\n"
                          "address: ${request.httpRequest.connectionInfo.remoteAddress}\n\n"
-                , e, s);
+                , error: e, stackTrace: s);
             } catch (e){};
           }
       });
