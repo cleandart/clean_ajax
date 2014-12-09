@@ -88,6 +88,7 @@ import 'dart:math';
 import "package:logging/logging.dart";
 
 import 'common.dart';
+import 'package:uuid/uuid.dart';
 
 export 'common.dart' show ClientRequest;
 
@@ -344,6 +345,11 @@ class HttpTransport extends Transport {
 
   bool _connected = true;
 
+  /**
+   * Generator for request id's
+   */
+  final Uuid _uuid = new Uuid();
+
   void _disconnect() {
     _connected = false;
     _disconnectConnection();
@@ -409,18 +415,22 @@ class HttpTransport extends Transport {
   }
 
   Future _buildRequest(data) {
+    var headers = {
+      'Content-Type': 'application/json',
+      'Request-Id': _uuid.v4(),
+    };
     if (null == _timeout) {
       return _sendHttpRequest(
           _url,
           method: 'POST',
-          requestHeaders: {'Content-Type': 'application/json'},
+          requestHeaders: headers,
           sendData: JSON.encode(data)
       );
     } else {
       return _sendHttpRequest(
           _url,
           method: 'POST',
-          requestHeaders: {'Content-Type': 'application/json'},
+          requestHeaders: headers,
           sendData: JSON.encode(data),
           timeout: _timeout
       );
